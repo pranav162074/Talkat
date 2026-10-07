@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import env from './config/env.js';
 import prisma from './config/prisma.js';
 import redis from './config/redis.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 
@@ -35,6 +36,8 @@ app.get('/health', async (req, res) => {
   const healthy = status.postgres === 'ok' && status.redis === 'ok';
   res.status(healthy ? 200 : 503).json(status);
 });
+
+app.use('/api/auth', authRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
