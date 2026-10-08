@@ -18,3 +18,10 @@ export const loginSchema = z.object({
   email,
   password: z.string().min(1, 'Password is required'),
 });
+
+export const verifyOtpSchema = z.object({
+  email,
+  code: z.string().trim().regex(/^\d{6}$/, 'Code must be 6 digits'),
+});
+
+export const resendOtpSchema = z.object({ email });
