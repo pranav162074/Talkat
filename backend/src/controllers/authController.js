@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
 import { generateToken } from '../utils/token.js';
+import { sendOtp, verifyOtp } from '../services/otpService.js';
 
-// Never send the password hash (or other internal fields) to the client
 const toPublicUser = (user) => ({
   id: user.id,
   name: user.name,
@@ -17,23 +17,79 @@ const toPublicUser = (user) => ({
 export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (user && user.isEmailVerified) {
       return res.status(409).json({ message: 'Email already registered' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword },
-    });
+    if (user) {
+      // Unverified leftover from an earlier attempt: let the real owner start over
+      user = await prisma.user.update({
+        where: { email },
+        data: { name, password: hashedPassword },
+      });
+    } else {
+      user = await prisma.user.create({ data: { name, email, password: hashedPassword } });
+    }
 
-    res.status(201).json({ token: generateToken(user.id), user: toPublicUser(user) });
+    await sendOtp(user, 'signup');
+    res.status(201).json({ message: 'Verification code sent to your email', email });
   } catch (error) {
-    // Two simultaneous signups with the same email: the unique constraint catches it
     if (error.code === 'P2002') {
       return res.status(409).json({ message: 'Email already registered' });
     }
+    next(error);
+  }
+};
+
+// @route POST /api/auth/verify-otp
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired code' });
+    }
+
+    const result = await verifyOtp(email, code, 'signup');
+    if (result === 'locked') {
+      return res.status(429).json({ message: 'Too many wrong attempts, request a new code' });
+    }
+    if (result !== 'ok') {
+      return res.status(400).json({ message: 'Invalid or expired code' });
+    }
+
+    const verified = await prisma.user.update({
+      where: { email },
+      data: { isEmailVerified: true },
+    });
+
+    res.json({ token: generateToken(verified.id), user: toPublicUser(verified) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route POST /api/auth/resend-otp
+export const resendOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Same response whether or not the account exists, so emails can't be enumerated
+    if (user && !user.isEmailVerified) {
+      const wait = await sendOtp(user, 'signup');
+      if (wait > 0) {
+        return res.status(429).json({ message: `Please wait ${wait}s before requesting another code` });
+      }
+    }
+
+    res.json({ message: 'If that account needs verification, a new code was sent' });
+  } catch (error) {
     next(error);
   }
 };
@@ -45,11 +101,18 @@ export const login = async (req, res, next) => {
 
     const user = await prisma.user.findUnique({ where: { email } });
 
-    // Same message for "no such user", "Google-only account" and "wrong password",
-    // so attackers can't use the response to find out which emails are registered
     const valid = user && user.password ? await bcrypt.compare(password, user.password) : false;
     if (!valid) {
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (!user.isEmailVerified) {
+      await sendOtp(user, 'signup');
+      return res.status(403).json({
+        message: 'Email not verified. We sent you a new code.',
+        needsVerification: true,
+        email: user.email,
+      });
     }
 
     res.json({ token: generateToken(user.id), user: toPublicUser(user) });

@@ -17,6 +17,8 @@ const env = {
   useRedisAdapter: process.env.USE_REDIS_ADAPTER === 'true',
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  brevoApiKey: process.env.BREVO_API_KEY,
+  brevoSenderEmail: process.env.BREVO_SENDER_EMAIL,
 };
 
 export default env;
