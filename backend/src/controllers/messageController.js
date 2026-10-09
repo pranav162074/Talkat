@@ -6,6 +6,7 @@ import {
   markRead,
   MAX_PAGE,
 } from '../services/messageService.js';
+import { emitNewMessage, emitRead } from '../sockets/emitters.js';
 
 const cursorSchema = z.string().uuid();
 
@@ -44,6 +45,7 @@ export const sendMessage = async (req, res, next) => {
     }
 
     const message = await createMessage(id, req.user.id, req.body);
+    emitNewMessage(req.app.get('io'), message);
     res.status(201).json({ message });
   } catch (error) {
     next(error);
@@ -62,7 +64,9 @@ export const markConversationRead = async (req, res, next) => {
     if (messageId && !lastReadMessageId) {
       return res.status(404).json({ message: 'Message not found' });
     }
-
+    if (lastReadMessageId) {
+      emitRead(req.app.get('io'), req.params.id, req.user.id, lastReadMessageId);
+    }
     res.json({ lastReadMessageId });
   } catch (error) {
     next(error);
