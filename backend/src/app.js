@@ -7,6 +7,8 @@ import env from './config/env.js';
 import prisma from './config/prisma.js';
 import redis from './config/redis.js';
 import authRoutes from './routes/authRoutes.js';
+import conversationRoutes from './routes/conversationRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 const app = express();
 
@@ -38,6 +40,8 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/conversations', conversationRoutes);
+app.use('/api/users', userRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
