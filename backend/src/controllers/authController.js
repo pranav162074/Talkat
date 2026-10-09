@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
 import { generateToken } from '../utils/token.js';
 import { sendOtp, verifyOtp } from '../services/otpService.js';
+import { verifyGoogleToken } from '../services/googleService.js';
 
 const toPublicUser = (user) => ({
   id: user.id,
@@ -124,4 +125,49 @@ export const login = async (req, res, next) => {
 // @route GET /api/auth/me
 export const getMe = (req, res) => {
   res.json({ user: toPublicUser(req.user) });
+};
+
+// @route POST /api/auth/google
+export const googleLogin = async (req, res, next) => {
+  try {
+    const profile = await verifyGoogleToken(req.body.credential);
+    if (!profile) {
+      return res.status(401).json({ message: 'Invalid Google credential' });
+    }
+
+    let user =
+      (await prisma.user.findUnique({ where: { googleId: profile.googleId } })) ||
+      (await prisma.user.findUnique({ where: { email: profile.email } }));
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          name: profile.name,
+          email: profile.email,
+          googleId: profile.googleId,
+          avatar: profile.avatar,
+          authProvider: 'GOOGLE',
+          isEmailVerified: true,
+        },
+      });
+    } else {
+      const data = {};
+      if (!user.googleId) data.googleId = profile.googleId;
+      if (!user.avatar && profile.avatar) data.avatar = profile.avatar;
+      if (!user.isEmailVerified) {
+        // Google has proven this person owns the email. An unverified account with
+        // this email was created by someone who never proved that, so we wipe its
+        // password. Otherwise they could register first and log in as the real owner.
+        data.isEmailVerified = true;
+        data.password = null;
+      }
+      if (Object.keys(data).length > 0) {
+        user = await prisma.user.update({ where: { id: user.id }, data });
+      }
+    }
+
+    res.json({ token: generateToken(user.id), user: toPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
 };
