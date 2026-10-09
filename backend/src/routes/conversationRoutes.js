@@ -13,7 +13,15 @@ import {
   directConversationSchema,
   groupConversationSchema,
   addParticipantsSchema,
+  sendMessageSchema,
+  markReadSchema,
 } from '../utils/validators.js';
+import {
+  listMessages,
+  sendMessage,
+  markConversationRead,
+} from '../controllers/messageController.js';
+import { messageLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -25,5 +33,8 @@ router.get('/', listConversations);
 router.get('/:id', getConversation);
 router.post('/:id/participants', validate(addParticipantsSchema), addParticipants);
 router.delete('/:id/participants/:userId', removeParticipant);
+router.get('/:id/messages', listMessages);
+router.post('/:id/messages', messageLimiter, validate(sendMessageSchema), sendMessage);
+router.post('/:id/read', validate(markReadSchema), markConversationRead);
 
 export default router;

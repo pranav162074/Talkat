@@ -42,3 +42,17 @@ export const groupConversationSchema = z.object({
 export const addParticipantsSchema = z.object({
   userIds: z.array(uuid).min(1, 'Select at least one user').max(50, 'Too many users at once'),
 });
+
+export const sendMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('TEXT'),
+    content: z.string().trim().min(1, 'Message cannot be empty').max(4000, 'Message is too long'),
+  }),
+  z.object({
+    type: z.literal('LOCATION'),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+  }),
+]);
+
+export const markReadSchema = z.object({ messageId: uuid.optional() });

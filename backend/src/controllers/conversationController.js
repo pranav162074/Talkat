@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { getUnreadCounts } from '../services/messageService.js';
 
 const userSelect = { id: true, name: true, avatar: true };
 
@@ -9,7 +10,7 @@ const include = {
   },
 };
 
-const toDto = (conversation, lastMessage = null) => ({
+const toDto = (conversation, lastMessage = null, unreadCount = 0) => ({
   id: conversation.id,
   type: conversation.type,
   name: conversation.name,
@@ -20,8 +21,10 @@ const toDto = (conversation, lastMessage = null) => ({
     name: p.user.name,
     avatar: p.user.avatar,
     role: p.role,
+    lastReadMessageId: p.lastReadMessageId,
   })),
   lastMessage,
+  unreadCount,
 });
 
 // @route POST /api/conversations/direct
@@ -106,16 +109,19 @@ export const createGroup = async (req, res, next) => {
 // @route GET /api/conversations
 export const listConversations = async (req, res, next) => {
   try {
-    const conversations = await prisma.conversation.findMany({
-      where: { participants: { some: { userId: req.user.id } } },
-      include: {
-        ...include,
-        messages: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
-    });
+    const [conversations, unread] = await Promise.all([
+      prisma.conversation.findMany({
+        where: { participants: { some: { userId: req.user.id } } },
+        include: {
+          ...include,
+          messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+        },
+      }),
+      getUnreadCounts(req.user.id),
+    ]);
 
     const result = conversations
-      .map((c) => toDto(c, c.messages[0] || null))
+      .map((c) => toDto(c, c.messages[0] || null, unread[c.id] || 0))
       .sort((a, b) => {
         const aTime = new Date(a.lastMessage?.createdAt || a.createdAt);
         const bTime = new Date(b.lastMessage?.createdAt || b.createdAt);
