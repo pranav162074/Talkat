@@ -9,3 +9,13 @@ export const authLimiter = rateLimit({
   skip: () => env.nodeEnv === 'test',
   message: { message: 'Too many attempts, please try again later' },
 });
+
+export const messageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  keyGenerator: (req) => req.user.id,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => env.nodeEnv === 'test',
+  message: { message: 'You are sending messages too fast' },
+});
