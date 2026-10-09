@@ -20,6 +20,9 @@ const env = {
   brevoApiKey: process.env.BREVO_API_KEY,
   brevoSenderEmail: process.env.BREVO_SENDER_EMAIL,
   googleClientId: process.env.GOOGLE_CLIENT_ID,
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
 };
 
 export default env;

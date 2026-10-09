@@ -7,6 +7,7 @@ import {
   MAX_PAGE,
 } from '../services/messageService.js';
 import { emitNewMessage, emitRead } from '../sockets/emitters.js';
+import { uploadToCloudinary, getMessageType } from '../services/uploadService.js';
 
 const cursorSchema = z.string().uuid();
 
@@ -68,6 +69,48 @@ export const markConversationRead = async (req, res, next) => {
       emitRead(req.app.get('io'), req.params.id, req.user.id, lastReadMessageId);
     }
     res.json({ lastReadMessageId });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Runs before the upload, so non-members can't make us handle their files
+export const requireMember = async (req, res, next) => {
+  try {
+    if (!(await getMembership(req.params.id, req.user.id))) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route POST /api/conversations/:id/attachments  (multipart form: file, optional content)
+export const sendAttachment = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const caption = String(req.body.content || '').trim().slice(0, 1000);
+
+    let uploaded;
+    try {
+      uploaded = await uploadToCloudinary(req.file);
+    } catch (error) {
+      console.error('Cloudinary upload failed:', error.message);
+      return res.status(502).json({ message: 'Could not upload the file, try again' });
+    }
+
+    const message = await createMessage(req.params.id, req.user.id, {
+      type: getMessageType(req.file.mimetype),
+      content: caption || null,
+      attachmentUrl: uploaded.secure_url,
+      attachmentName: req.file.originalname.slice(0, 255),
+      attachmentSize: req.file.size,
+    });
+
+    emitNewMessage(req.app.get('io'), message);
+    res.status(201).json({ message });
   } catch (error) {
     next(error);
   }
