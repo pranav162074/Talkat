@@ -29,3 +29,16 @@ export const resendOtpSchema = z.object({ email });
 export const googleSchema = z.object({
   credential: z.string().min(1, 'Google credential is required'),
 });
+
+const uuid = z.string().uuid('Invalid id');
+
+export const directConversationSchema = z.object({ userId: uuid });
+
+export const groupConversationSchema = z.object({
+  name: z.string().trim().min(1, 'Group name is required').max(50, 'Group name is too long'),
+  memberIds: z.array(uuid).min(1, 'Add at least one member').max(99, 'Too many members'),
+});
+
+export const addParticipantsSchema = z.object({
+  userIds: z.array(uuid).min(1, 'Select at least one user').max(50, 'Too many users at once'),
+});
