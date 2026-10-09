@@ -1,5 +1,10 @@
 import prisma from '../config/prisma.js';
 import { getUnreadCounts } from '../services/messageService.js';
+import {
+  addToConversation,
+  removeFromConversation,
+  emitMembersChanged,
+} from '../sockets/emitters.js';
 
 const userSelect = { id: true, name: true, avatar: true };
 
@@ -64,7 +69,9 @@ export const getOrCreateDirect = async (req, res, next) => {
       }
     }
 
-    res.status(created ? 201 : 200).json({ conversation: toDto(conversation) });
+    const dto = toDto(conversation);
+    if (created) addToConversation(req.app.get('io'), [me, userId], dto);
+    res.status(created ? 201 : 200).json({ conversation: dto });
   } catch (error) {
     next(error);
   }
@@ -100,7 +107,9 @@ export const createGroup = async (req, res, next) => {
       include,
     });
 
-    res.status(201).json({ conversation: toDto(conversation) });
+    const dto = toDto(conversation);
+    addToConversation(req.app.get('io'), [me, ...memberIds], dto);
+    res.status(201).json({ conversation: dto });
   } catch (error) {
     next(error);
   }
@@ -175,13 +184,20 @@ export const addParticipants = async (req, res, next) => {
       return res.status(404).json({ message: 'One or more users were not found' });
     }
 
+    const existing = new Set(conversation.participants.map((p) => p.userId));
+    const newIds = userIds.filter((id) => !existing.has(id));
+
     await prisma.conversationParticipant.createMany({
       data: userIds.map((userId) => ({ userId, conversationId: conversation.id })),
       skipDuplicates: true,
     });
 
     const updated = await prisma.conversation.findUnique({ where: { id: conversation.id }, include });
-    res.json({ conversation: toDto(updated) });
+    const dto = toDto(updated);
+    const io = req.app.get('io');
+    addToConversation(io, newIds, dto);
+    emitMembersChanged(io, conversation.id);
+    res.json({ conversation: dto });
   } catch (error) {
     next(error);
   }
@@ -217,6 +233,7 @@ export const removeParticipant = async (req, res, next) => {
     // Last person leaving: remove the whole conversation (messages cascade)
     if (remaining.length === 0) {
       await prisma.conversation.delete({ where: { id } });
+      removeFromConversation(req.app.get('io'), userId, id);
       return res.status(204).end();
     }
 
@@ -233,6 +250,9 @@ export const removeParticipant = async (req, res, next) => {
       }
     });
 
+    const io = req.app.get('io');
+    removeFromConversation(io, userId, id);
+    emitMembersChanged(io, id);
     res.status(204).end();
   } catch (error) {
     next(error);
