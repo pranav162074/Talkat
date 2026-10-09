@@ -25,3 +25,7 @@ export const verifyOtpSchema = z.object({
 });
 
 export const resendOtpSchema = z.object({ email });
+
+export const googleSchema = z.object({
+  credential: z.string().min(1, 'Google credential is required'),
+});

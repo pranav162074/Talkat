@@ -11,7 +11,7 @@ if (missing.length > 0) {
 const env = {
   port: Number(process.env.PORT) || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  clientUrls: (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((url) => url.trim()),
   databaseUrl: process.env.DATABASE_URL,
   redisUrl: process.env.REDIS_URL,
   useRedisAdapter: process.env.USE_REDIS_ADAPTER === 'true',
@@ -19,6 +19,7 @@ const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   brevoApiKey: process.env.BREVO_API_KEY,
   brevoSenderEmail: process.env.BREVO_SENDER_EMAIL,
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
 };
 
 export default env;
