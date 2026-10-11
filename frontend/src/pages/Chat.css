@@ -1,0 +1,22 @@
+.chat-layout {
+  display: flex;
+  height: 100%;
+}
+
+.chat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-placeholder {
+  margin: auto;
+  text-align: center;
+  color: #6b7280;
+}
+
+.chat-placeholder h2 {
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
