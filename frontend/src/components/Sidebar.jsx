@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
+import CreateGroupModal from './CreateGroupModal';
 import './Sidebar.css';
 
 const initial = (name) => (name?.trim()?.[0] || '?').toUpperCase();
@@ -36,6 +37,7 @@ export default function Sidebar() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
 
   // Search 400ms after the user stops typing
   useEffect(() => {
@@ -101,6 +103,10 @@ export default function Sidebar() {
         onChange={(e) => setQuery(e.target.value)}
       />
 
+      <button className="sidebar-new-group" onClick={() => setShowGroupModal(true)}>
+        + New group
+      </button>
+
       <div className="sidebar-list">
         {showResults ? (
           <>
@@ -141,6 +147,8 @@ export default function Sidebar() {
           </>
         )}
       </div>
+
+      {showGroupModal && <CreateGroupModal onClose={() => setShowGroupModal(false)} />}
     </aside>
   );
 }
