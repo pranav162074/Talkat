@@ -84,15 +84,16 @@ export function useMessages(conversationId) {
     }
   }, [conversationId, hasMore, loadingMore]);
 
+  // Sends a text or location message over the socket and waits for the server's confirmation.
   // Resolves to { ok: true, message } or { ok: false, error }
-  const sendText = useCallback(
-    (content) =>
+  const sendOverSocket = useCallback(
+    (fields) =>
       new Promise((resolve) => {
         if (!socket) return resolve({ ok: false, error: 'Not connected' });
 
         socket
           .timeout(10000)
-          .emit('message:send', { conversationId, type: 'TEXT', content }, (err, res) => {
+          .emit('message:send', { conversationId, ...fields }, (err, res) => {
             if (err) return resolve({ ok: false, error: 'Sending timed out' });
             if (res.ok) setMessages((prev) => addUnique(prev, res.message));
             resolve(res);
@@ -101,5 +102,43 @@ export function useMessages(conversationId) {
     [socket, conversationId]
   );
 
-  return { messages, loading, loadingMore, hasMore, error, loadMore, sendText };
+  const sendText = useCallback(
+    (content) => sendOverSocket({ type: 'TEXT', content }),
+    [sendOverSocket]
+  );
+
+  const sendLocation = useCallback(
+    (latitude, longitude) => sendOverSocket({ type: 'LOCATION', latitude, longitude }),
+    [sendOverSocket]
+  );
+
+  // Files go over HTTP (multipart), because sockets aren't meant for large uploads
+  const sendAttachment = useCallback(
+    async (file, caption = '') => {
+      const form = new FormData();
+      form.append('file', file);
+      if (caption) form.append('content', caption);
+
+      try {
+        const { data } = await api.post(`/conversations/${conversationId}/attachments`, form);
+        setMessages((prev) => addUnique(prev, data.message));
+        return { ok: true, message: data.message };
+      } catch (err) {
+        return { ok: false, error: err.response?.data?.message || 'Could not upload the file' };
+      }
+    },
+    [conversationId]
+  );
+
+  return {
+    messages,
+    loading,
+    loadingMore,
+    hasMore,
+    error,
+    loadMore,
+    sendText,
+    sendLocation,
+    sendAttachment,
+  };
 }
