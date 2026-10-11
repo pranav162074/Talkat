@@ -1,0 +1,64 @@
+.picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.picker-chip {
+  padding: 0.25rem 0.6rem;
+  border: none;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.picker-search {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.picker-search:focus {
+  outline: 2px solid #6366f1;
+  border-color: transparent;
+}
+
+.picker-results {
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 0.4rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.picker-note {
+  margin: 0;
+  padding: 0.75rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.picker-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.picker-item:hover {
+  background: #f3f4f6;
+}
+
+.picker-check {
+  color: #6366f1;
+  font-weight: 700;
+}

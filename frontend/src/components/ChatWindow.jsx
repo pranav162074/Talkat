@@ -1,13 +1,15 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import { useMessages } from '../hooks/useMessages';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import './ChatWindow.css';
+import GroupInfoModal from './GroupInfoModal';
 
 export default function ChatWindow({ conversation }) {
   const { user } = useAuth();
+  const [showInfo, setShowInfo] = useState(false);
   const { onlineIds, typing } = useChat();
   const {
     messages,
@@ -84,6 +86,11 @@ export default function ChatWindow({ conversation }) {
             {isGroup ? `${conversation.participants.length} members` : online ? 'online' : 'offline'}
           </span>
         </div>
+        {isGroup && (
+          <button className="btn-link" onClick={() => setShowInfo(true)}>
+            Group info
+          </button>
+        )}
       </header>
 
       <div className="window-list" ref={listRef} onScroll={onScroll}>
@@ -118,6 +125,7 @@ export default function ChatWindow({ conversation }) {
         onSendLocation={withScroll(sendLocation)}
         onSendAttachment={withScroll(sendAttachment)}
       />
+      {showInfo && <GroupInfoModal conversation={conversation} onClose={() => setShowInfo(false)} />}
     </div>
   );
 }

@@ -131,3 +131,18 @@
   background: #22c55e;
   border: 2px solid #fff;
 }
+
+.sidebar-new-group {
+  margin: 0 1rem 0.5rem;
+  padding: 0.5rem;
+  background: none;
+  border: 1px dashed #c7d2fe;
+  border-radius: 8px;
+  color: #4f46e5;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sidebar-new-group:hover {
+  background: #eef2ff;
+}
