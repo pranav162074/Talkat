@@ -9,9 +9,17 @@ import './ChatWindow.css';
 export default function ChatWindow({ conversation }) {
   const { user } = useAuth();
   const { onlineIds, typing } = useChat();
-  const { messages, loading, loadingMore, hasMore, error, loadMore, sendText } = useMessages(
-    conversation.id
-  );
+  const {
+    messages,
+    loading,
+    loadingMore,
+    hasMore,
+    error,
+    loadMore,
+    sendText,
+    sendLocation,
+    sendAttachment,
+  } = useMessages(conversation.id);
 
   const listRef = useRef(null);
   const stickToBottom = useRef(true); // follow new messages only if you are already at the bottom
@@ -61,9 +69,10 @@ export default function ChatWindow({ conversation }) {
     if (el.scrollTop < 60) loadMore();
   };
 
-  const onSend = async (content) => {
-    stickToBottom.current = true; // always jump to your own new message
-    return sendText(content);
+  // Whatever you send, jump to the bottom so your own message is visible
+  const withScroll = (send) => (...args) => {
+    stickToBottom.current = true;
+    return send(...args);
   };
 
   return (
@@ -103,7 +112,12 @@ export default function ChatWindow({ conversation }) {
         )}
       </div>
 
-      <MessageInput conversationId={conversation.id} onSend={onSend} />
+      <MessageInput
+        conversationId={conversation.id}
+        onSend={withScroll(sendText)}
+        onSendLocation={withScroll(sendLocation)}
+        onSendAttachment={withScroll(sendAttachment)}
+      />
     </div>
   );
 }
