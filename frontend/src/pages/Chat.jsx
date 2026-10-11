@@ -1,30 +1,21 @@
 import SocketProvider from '../context/SocketProvider';
 import ChatProvider from '../context/ChatProvider';
-import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import Sidebar from '../components/Sidebar';
+import ChatWindow from '../components/ChatWindow';
 import './Chat.css';
 
 function ChatLayout() {
-  const { user } = useAuth();
   const { conversations, activeId } = useChat();
   const active = conversations.find((c) => c.id === activeId);
-
-  const title = active
-    ? active.type === 'GROUP'
-      ? active.name
-      : active.participants.find((p) => p.id !== user.id)?.name
-    : null;
 
   return (
     <div className="chat-layout">
       <Sidebar />
       <main className="chat-main">
         {active ? (
-          <div className="chat-placeholder">
-            <h2>{title}</h2>
-            <p>Messages arrive in the next branch.</p>
-          </div>
+          // key makes React rebuild the window when you switch chats, resetting its state
+          <ChatWindow key={active.id} conversation={active} />
         ) : (
           <div className="chat-placeholder">
             <h2>Talkat</h2>

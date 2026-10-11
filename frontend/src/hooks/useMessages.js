@@ -1,0 +1,105 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import api from '../api/axios';
+import { useAuth } from './useAuth';
+import { useSocket } from './useSocket';
+
+const PAGE_SIZE = 30;
+
+// The same message can arrive twice (ack and live event), so never add a duplicate
+const addUnique = (list, message) =>
+  list.some((m) => m.id === message.id) ? list : [...list, message];
+
+// Messages are kept oldest first, so the newest one is at the bottom of the screen
+export function useMessages(conversationId) {
+  const { user } = useAuth();
+  const socket = useSocket();
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState('');
+  const cursorRef = useRef(null);
+
+  // Load the newest page when the chat opens
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get(`/conversations/${conversationId}/messages`, { params: { limit: PAGE_SIZE } })
+      .then(({ data }) => {
+        if (cancelled) return;
+        const fetched = [...data.messages].reverse(); // the API sends newest first
+        // Keep anything that arrived live while this request was in flight
+        setMessages((prev) => [...fetched, ...prev.filter((m) => !fetched.some((f) => f.id === m.id))]);
+        setHasMore(data.hasMore);
+        cursorRef.current = data.nextCursor;
+      })
+      .catch(() => {
+        if (!cancelled) setError('Could not load messages');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId]);
+
+  // Opening the chat counts as reading it
+  useEffect(() => {
+    if (!loading && socket) socket.emit('message:read', { conversationId });
+  }, [loading, socket, conversationId]);
+
+  // Live delivery
+  useEffect(() => {
+    if (!socket) return;
+
+    const onMessage = (message) => {
+      if (message.conversationId !== conversationId) return;
+      setMessages((prev) => addUnique(prev, message));
+      // The chat is open, so a message from someone else is read straight away
+      if (message.senderId !== user.id) socket.emit('message:read', { conversationId });
+    };
+
+    socket.on('message:new', onMessage);
+    return () => socket.off('message:new', onMessage);
+  }, [socket, conversationId, user.id]);
+
+  // Infinite scroll: fetch the page of messages older than the ones we have
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || !cursorRef.current) return;
+    setLoadingMore(true);
+    try {
+      const { data } = await api.get(`/conversations/${conversationId}/messages`, {
+        params: { limit: PAGE_SIZE, cursor: cursorRef.current },
+      });
+      setMessages((prev) => [...[...data.messages].reverse(), ...prev]);
+      setHasMore(data.hasMore);
+      cursorRef.current = data.nextCursor;
+    } catch {
+      setError('Could not load older messages');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [conversationId, hasMore, loadingMore]);
+
+  // Resolves to { ok: true, message } or { ok: false, error }
+  const sendText = useCallback(
+    (content) =>
+      new Promise((resolve) => {
+        if (!socket) return resolve({ ok: false, error: 'Not connected' });
+
+        socket
+          .timeout(10000)
+          .emit('message:send', { conversationId, type: 'TEXT', content }, (err, res) => {
+            if (err) return resolve({ ok: false, error: 'Sending timed out' });
+            if (res.ok) setMessages((prev) => addUnique(prev, res.message));
+            resolve(res);
+          });
+      }),
+    [socket, conversationId]
+  );
+
+  return { messages, loading, loadingMore, hasMore, error, loadMore, sendText };
+}
