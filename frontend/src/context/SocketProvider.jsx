@@ -10,8 +10,9 @@ export default function SocketProvider({ children }) {
   useEffect(() => {
     if (!token) return;
 
-    // The backend checks this token during the handshake
+    // The socket is an external resource, so it is created and stored from an effect
     const s = io(import.meta.env.VITE_SOCKET_URL, { auth: { token } });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSocket(s);
 
     return () => {
