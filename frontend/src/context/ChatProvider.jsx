@@ -28,6 +28,8 @@ export default function ChatProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    // Loading data on mount is a normal use of an effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
   }, [refresh]);
 
