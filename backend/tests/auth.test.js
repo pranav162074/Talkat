@@ -7,6 +7,7 @@ import { sendOtpEmail } from '../src/services/emailService.js';
 
 const email = `auth-test-${Date.now()}@example.com`;
 const password = 'password123';
+let otpCode;
 
 // The mocked email service receives (email, name, code), so the code is the third argument
 const lastCodeFor = (to) => {
@@ -48,7 +49,8 @@ describe('auth flow', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.token).toBeUndefined();
-    expect(lastCodeFor(email)).toMatch(/^\d{6}$/);
+    otpCode = lastCodeFor(email); // read it now, while the mock still has the call
+    expect(otpCode).toMatch(/^\d{6}$/);
   });
 
   it('blocks login until the email is verified', async () => {
@@ -63,13 +65,13 @@ describe('auth flow', () => {
       .send({ email, code: '000000' });
     expect(res.status).toBe(400);
   });
-
+  
   it('verifies with the right code and returns a token', async () => {
     const res = await request(app)
       .post('/api/auth/verify-otp')
-      .send({ email, code: lastCodeFor(email) });
+      .send({ email, code: otpCode });
 
-    expect(res.status).toBe(200);
+    expect(res.status, `code=${otpCode} body=${JSON.stringify(res.body)}`).toBe(200);
     expect(res.body.token).toBeTruthy();
     expect(res.body.user.isEmailVerified).toBe(true);
     expect(res.body.user.password).toBeUndefined();
