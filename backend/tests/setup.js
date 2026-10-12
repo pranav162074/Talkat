@@ -2,7 +2,15 @@ import { vi } from 'vitest';
 
 // Safety guard: tests create and delete data, so they may only run against a
 // local or CI database, never against Neon or Upstash
-const isSafeUrl = (url) => /@(localhost|127\.0\.0\.1|postgres|redis)\b/.test(url || '');
+const SAFE_HOSTS = new Set(['localhost', '127.0.0.1', 'postgres', 'redis']);
+
+const isSafeUrl = (url) => {
+  try {
+    return SAFE_HOSTS.has(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+};
 
 for (const key of ['DATABASE_URL', 'DIRECT_URL', 'REDIS_URL']) {
   if (!process.env[key]) {
