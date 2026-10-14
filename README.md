@@ -1,145 +1,226 @@
 # Talkat
 
-**Talkat** is a real-time chat application built to provide user authentication, messaging, and group conversations through a modern web interface.
+A real-time chat app with 1-on-1 and group conversations, file and location sharing, email OTP verification and Google sign-in.
+
+**Live demo:** https://talkat-app.onrender.com
+
+> The backend runs on a free hosting plan that sleeps when idle, so the first request after a quiet period can take 15 to 60 seconds. After that it responds normally.
 
 ## Features
 
-- **Authentication** — Login, registration, and OTP verification interfaces.
-- **Real-Time Communication** — Socket-based communication for chat functionality.
-- **Private and Group Chats** — Chat interface with group creation and group information components.
-- **Message Interface** — Dedicated message bubbles and message input components.
-- **Location Sharing** — Map component for displaying location-related messages.
-- **Protected Routes** — Route guards for controlling access to application pages.
-- **State Management** — Context providers and custom hooks for authentication, chats, and socket connections.
-- **Reusable Components** — Modular React components for a maintainable frontend architecture.
+- **Authentication:** email and password with bcrypt, email OTP verification, and Google sign-in. Google accounts link to an existing account with the same email.
+- **Real-time messaging:** Socket.io with JWT-authenticated connections, instant delivery, typing indicators, online presence and read receipts.
+- **Direct and group chats:** one direct chat per pair of users, groups with admin and member roles, admin-only add and remove, and automatic admin promotion when the last admin leaves.
+- **Attachments:** images, videos and documents (up to 10 MB) stored on Cloudinary.
+- **Location sharing:** send your position and see it on an interactive Leaflet map inside the chat.
+- **Message history:** cursor-based pagination with infinite scroll, and unread counts per conversation.
+- **Quality checks:** automated API tests and a CI pipeline on every pull request.
 
-## Tech Stack
+## Tech stack
 
-### Frontend
-- React
-- JavaScript (JSX)
-- CSS
-- Axios
-- Socket.IO client
-- Leaflet or a compatible mapping library for location features
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, React Router, Axios, Socket.io client, React Leaflet |
+| Backend | Node.js 20+, Express 5, Socket.io, Zod |
+| Database | PostgreSQL (Neon) with Prisma 6 |
+| Cache and ephemeral data | Redis (Upstash) |
+| File storage | Cloudinary |
+| Email | Brevo HTTP API |
+| Auth | JWT, bcrypt, Google Identity Services |
+| Testing and CI | Vitest, Supertest, GitHub Actions |
+| Hosting | Render (backend web service and frontend static site) |
 
-### Backend and Infrastructure
-The backend and infrastructure technologies should be documented according to the actual implementation in the project.
+## Architecture
 
-## Project Structure
+```text
+React app (Render static site)
+   |  HTTPS (REST)                  |  WebSocket (Socket.io)
+   v                                v
+Express + Socket.io server (Render web service)
+   |            |             |              |
+   v            v             v              v
+PostgreSQL    Redis       Cloudinary       Brevo
+ (Neon)     (Upstash)      (files)        (OTP email)
+```
+
+### Design decisions
+
+- **PostgreSQL for chat data.** Users, conversations, participants and messages are relational, so foreign keys, unique constraints and joins fit naturally.
+- **Direct chats are unique per pair.** A sorted `directKey` with a unique constraint means the database itself prevents duplicates, even if two users open the chat at the same moment.
+- **OTP codes live in Redis, not Postgres.** Codes are stored hashed with a 5-minute TTL, a 60-second resend cooldown and a 5-attempt lockout.
+- **Message history uses cursor pagination.** Offset pagination shifts when new messages arrive, while a cursor stays stable and uses the `(conversationId, createdAt)` index.
+- **Recent messages are cached in Redis.** Reads use cache-aside, sends write through only when the cache already exists, and any Redis failure falls back to Postgres.
+- **Unread counts come from one SQL query.** Each member stores a `lastReadMessageId`, which also drives read receipts, so there is no per-message, per-user table.
+- **One delivery path for messages.** The REST endpoints and the socket events call the same service and emit through the same helper.
+- **Presence supports multiple tabs.** Each user has a Redis set of socket ids and counts as online while the set is non-empty.
+- **The Socket.io Redis adapter is optional.** Set `USE_REDIS_ADAPTER=true` to broadcast across several server instances. It is off by default to stay within free-tier Redis command limits.
+- **Security basics.** Passwords are hashed, input is validated with Zod, auth and message endpoints are rate limited, login errors do not reveal which emails exist, user search matches emails exactly only, and uploads use a file type allow-list and a size limit.
+
+## Project structure
 
 ```text
 Talkat/
-├── frontend/
-│   ├── public/
-│   │   └── favicon.svg
-│   └── src/
-│       ├── api/
-│       │   └── axios.js
-│       ├── components/
-│       │   ├── ChatWindow.jsx
-│       │   ├── CreateGroupModal.jsx
-│       │   ├── GroupInfoModal.jsx
-│       │   ├── LocationMap.jsx
-│       │   ├── MessageBubble.jsx
-│       │   ├── MessageInput.jsx
-│       │   ├── Modal.css
-│       │   ├── RouteGuards.jsx
-│       │   ├── Sidebar.jsx
-│       │   └── UserPicker.jsx
-│       ├── contexts/
-│       │   ├── authContext.js
-│       │   ├── AuthProvider.jsx
-│       │   ├── chatContext.js
-│       │   ├── ChatProvider.jsx
-│       │   ├── socketContext.js
-│       │   └── SocketProvider.jsx
-│       ├── hooks/
-│       │   ├── useAuth.js
-│       │   ├── useChat.js
-│       │   ├── useMessages.js
-│       │   └── useSocket.js
-│       ├── pages/
-│       │   ├── Auth.css
-│       │   ├── Chat.css
-│       │   ├── Chat.jsx
-│       │   ├── Login.jsx
-│       │   ├── Register.jsx
-│       │   └── VerifyOtp.jsx
-│       ├── utils/
-│       │   └── format.js
-│       ├── App.jsx
-│       ├── index.css
-│       └── main.jsx
-└── README.md
+├── .github/workflows/ci.yml      # Tests, lint and build on every pull request
+├── backend/
+│   ├── prisma/                   # Schema and migrations
+│   ├── src/
+│   │   ├── config/               # env, prisma, redis, cloudinary
+│   │   ├── controllers/          # auth, user, conversation, message
+│   │   ├── middleware/           # auth, validation, rate limits, uploads
+│   │   ├── routes/
+│   │   ├── services/             # otp, email, google, messages, uploads
+│   │   ├── sockets/              # handshake auth, handlers, emitters
+│   │   ├── utils/
+│   │   ├── app.js                # Express app (imported by tests)
+│   │   └── server.js             # HTTP server and Socket.io
+│   └── tests/                    # Vitest and Supertest tests
+└── frontend/
+    └── src/
+        ├── api/                  # Axios instance
+        ├── components/           # Sidebar, ChatWindow, MessageBubble, modals, map
+        ├── context/              # Auth, socket and chat providers
+        ├── hooks/                # useAuth, useSocket, useChat, useMessages
+        ├── pages/                # Login, Register, VerifyOtp, Chat
+        └── utils/
 ```
 
-## Getting Started
+## API overview
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/auth/register` | Create an account and send an OTP |
+| POST | `/api/auth/verify-otp` | Verify the email and receive a token |
+| POST | `/api/auth/resend-otp` | Send a new code (60 second cooldown) |
+| POST | `/api/auth/login` | Log in with email and password |
+| POST | `/api/auth/google` | Log in with a Google credential |
+| GET | `/api/auth/me` | Current user |
+| GET | `/api/users/search?q=` | Find people by name or exact email |
+| POST | `/api/conversations/direct` | Open or create a 1-on-1 chat |
+| POST | `/api/conversations/group` | Create a group |
+| GET | `/api/conversations` | List conversations with unread counts |
+| GET | `/api/conversations/:id` | One conversation |
+| POST | `/api/conversations/:id/participants` | Add members (admin) |
+| DELETE | `/api/conversations/:id/participants/:userId` | Remove a member (admin) or leave |
+| GET | `/api/conversations/:id/messages?limit=&cursor=` | Message history, newest first |
+| POST | `/api/conversations/:id/messages` | Send a text or location message |
+| POST | `/api/conversations/:id/attachments` | Upload a file as a message |
+| POST | `/api/conversations/:id/read` | Mark messages as read |
+| GET | `/health` | Server, Postgres and Redis status |
+| GET | `/ping` | Lightweight check for uptime monitors |
+
+### Socket events
+
+| Event | Direction | Purpose |
+|---|---|---|
+| `message:send` (with ack) | client to server | Send a text or location message |
+| `message:new` | server to room | Deliver a message |
+| `typing` | both | Typing indicator |
+| `message:read` (with ack) | client to server | Move the read marker forward |
+| `conversation:read` | server to room | Read receipt |
+| `presence:snapshot`, `presence:update` | server to client | Online status of contacts |
+| `conversation:new`, `conversation:removed`, `conversation:members-changed` | server to client | Keep chat lists in sync |
+
+## Running locally
 
 ### Prerequisites
 
-- Node.js
-- npm
-- The services and environment variables required by the backend, if applicable
+- Node.js 20 or newer
+- Free accounts for the services below (no local Docker needed):
+  - [Neon](https://neon.tech) for PostgreSQL
+  - [Upstash](https://upstash.com) for Redis
+  - [Brevo](https://www.brevo.com) for OTP emails, with one verified sender address
+  - [Cloudinary](https://cloudinary.com) for file storage
+  - [Google Cloud Console](https://console.cloud.google.com) for an OAuth Client ID, with `http://localhost:5173` as an authorized JavaScript origin
 
-### Installation
-
-Clone the repository:
+### Backend
 
 ```bash
-git clone https://github.com/pranav162074/Talkat.git
-cd Talkat
+cd backend
+npm install
+cp .env.example .env      # then fill in the values
+npx prisma migrate deploy
+npm run dev
 ```
 
-Install the frontend dependencies:
+The server starts on `http://localhost:5000`. Check `http://localhost:5000/health`.
+
+If `BREVO_API_KEY` is left empty, OTP codes are printed in the server terminal instead of being emailed, which is handy for development.
+
+### Frontend
 
 ```bash
 cd frontend
 npm install
-```
-
-### Running the Frontend
-
-Start the frontend using the development script defined in `frontend/package.json`. For a Vite project, the usual command is:
-
-```bash
+cp .env.example .env      # then fill in the values
 npm run dev
 ```
 
-Open the local URL printed in the terminal.
+Open `http://localhost:5173`.
 
-### Backend Configuration
+### Environment variables
 
-If the project includes a separate backend, install its dependencies and configure the required environment variables according to its package configuration and environment example files. Start the backend using its defined scripts.
+**Backend (`backend/.env`)**
 
-Ensure the frontend API client is configured to connect to the correct backend URL.
+| Variable | Description |
+|---|---|
+| `PORT` | Server port (default 5000) |
+| `NODE_ENV` | `development` or `production` |
+| `CLIENT_URL` | Allowed frontend origin or origins, comma-separated |
+| `DATABASE_URL` | Pooled PostgreSQL connection string |
+| `DIRECT_URL` | Direct PostgreSQL connection string (used by migrations) |
+| `REDIS_URL` | Redis connection string (`rediss://` for TLS) |
+| `USE_REDIS_ADAPTER` | `true` to enable the Socket.io Redis adapter |
+| `JWT_SECRET`, `JWT_EXPIRES_IN` | Token signing secret and lifetime |
+| `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` | Email delivery |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | File storage |
 
-## Application Architecture
+**Frontend (`frontend/.env`)**
 
-Talkat organizes its frontend into distinct layers:
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Backend REST base URL, for example `http://localhost:5000/api` |
+| `VITE_SOCKET_URL` | Backend origin, for example `http://localhost:5000` |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth Client ID |
 
-- **Pages** handle the main application screens.
-- **Components** provide reusable chat, message, group, and location interfaces.
-- **Contexts and Providers** manage shared authentication, chat, and socket state.
-- **Custom Hooks** provide reusable access to application state and messaging functionality.
-- **API Layer** centralizes HTTP communication through Axios.
-- **Utilities** contain shared helper functions.
+Never commit `.env` files. Only the `.env.example` templates belong in Git.
 
-## Future Improvements
+## Testing and CI
 
-Potential areas for further development include:
+The backend has 19 automated tests with Vitest and Supertest, covering the signup and OTP flow, login rules, direct and group conversations, message ordering, pagination, unread counts and admin permissions.
 
-- Message delivery and read receipts
-- Typing indicators and online presence
-- Image and file sharing
+```bash
+cd backend
+npm test
+```
+
+The tests create and delete data, so a safety guard refuses to run unless the database and Redis URLs point at `localhost`, `127.0.0.1` or the CI service hostnames. In practice they run in GitHub Actions, which starts throwaway Postgres and Redis containers, applies the migrations to an empty database and runs the suite. The same workflow lints and builds the frontend.
+
+Pull requests to `main` must pass both checks before merging.
+
+## Deployment
+
+- **Backend:** a Render web service with root directory `backend`, build command `npm install --include=dev && npx prisma migrate deploy` and start command `npm start`. The health check path is `/ping`.
+- **Frontend:** a Render static site with root directory `frontend`, build command `npm install && npm run build` and publish directory `dist`. A rewrite rule sends `/*` to `/index.html` so client-side routes work on refresh.
+- After deploying the frontend, set the backend's `CLIENT_URL` to the frontend address and add that address to the Google OAuth client's authorized JavaScript origins.
+
+## Known limitations
+
+- **Free hosting sleeps when idle.** Expect a cold start after inactivity.
+- **The auth token is stored in `localStorage`.** This is simple, but any script on the page can read it. httpOnly cookies would be stronger.
+- **File type checks trust the type reported by the browser.** A stricter version would inspect file contents.
+- **Presence can go stale if a server instance crashes** while the Redis adapter is enabled. A heartbeat would fix this.
+- **Realtime behavior is not covered by automated tests yet.** Socket events are tested manually.
+- **No push notifications or message editing and deletion.**
+
+## Possible next steps
+
+- Automated tests for Socket.io events
+- Load testing to measure latency under concurrent users
+- Message search, editing and deletion
 - Push notifications
-- Improved accessibility and responsive layouts
-- Automated testing and deployment
-
-## Repository
-
-[GitHub — Talkat](https://github.com/pranav162074/Talkat)
+- httpOnly cookie sessions
 
 ## License
 
-A license has not yet been specified. Add a `LICENSE` file if the project is intended for public reuse.
+No license has been specified yet. Add a `LICENSE` file if you want others to be able to reuse the code.
