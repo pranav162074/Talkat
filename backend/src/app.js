@@ -11,6 +11,9 @@ import conversationRoutes from './routes/conversationRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
 const app = express();
+// Render puts a proxy in front of the app. Without this, every user appears to
+// share the proxy's IP, so the rate limiters would treat everyone as one person
+app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(cors({ origin: env.clientUrls, credentials: true }));
@@ -18,6 +21,8 @@ app.use(express.json());
 app.use(cookieParser());
 if (env.nodeEnv !== 'test') app.use(morgan('dev'));
 
+// Cheap endpoint for uptime pingers: it doesn't touch the database or Redis
+app.get('/ping', (req, res) => res.json({ ok: true }));
 app.get('/health', async (req, res) => {
   const status = { server: 'ok', postgres: 'down', redis: 'down' };
 
