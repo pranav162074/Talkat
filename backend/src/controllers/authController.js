@@ -3,16 +3,7 @@ import prisma from '../config/prisma.js';
 import { generateToken } from '../utils/token.js';
 import { sendOtp, verifyOtp } from '../services/otpService.js';
 import { verifyGoogleToken } from '../services/googleService.js';
-
-const toPublicUser = (user) => ({
-  id: user.id,
-  name: user.name,
-  email: user.email,
-  avatar: user.avatar,
-  authProvider: user.authProvider,
-  isEmailVerified: user.isEmailVerified,
-  createdAt: user.createdAt,
-});
+import { toPublicUser } from '../utils/publicUser.js';
 
 // @route POST /api/auth/register
 export const register = async (req, res, next) => {

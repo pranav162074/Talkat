@@ -25,3 +25,32 @@ export const uploadToCloudinary = (file) =>
       )
       .end(file.buffer);
   });
+
+  // Uploads a profile picture, cropped to a 256x256 square centred on the face.
+  // Using the user's id as the file name means a new upload replaces the old one,
+  // so no orphaned pictures pile up in Cloudinary.
+  export const uploadAvatar = (file, userId) =>
+    new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            folder: 'talkat/avatars',
+            public_id: userId,
+            overwrite: true,
+            invalidate: true, // clears the CDN's cached copy of the old picture
+            resource_type: 'image',
+            transformation: [
+              { width: 256, height: 256, crop: 'fill', gravity: 'face' },
+              { quality: 'auto' },
+            ],
+          },
+          (error, result) => (error ? reject(error) : resolve(result))
+        )
+        .end(file.buffer);
+    });
+
+  export const deleteAvatar = (userId) =>
+    cloudinary.uploader.destroy(`talkat/avatars/${userId}`, {
+      resource_type: 'image',
+      invalidate: true,
+  });
