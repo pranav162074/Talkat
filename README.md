@@ -1,4 +1,5 @@
 # Talkat
+[![CI](https://github.com/pranav162074/Talkat/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pranav162074/Talkat/actions/workflows/ci.yml)
 
 A real-time chat app with 1-on-1 and group conversations, file and location sharing, email OTP verification and Google sign-in.
 
