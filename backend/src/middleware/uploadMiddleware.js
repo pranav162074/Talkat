@@ -48,3 +48,35 @@ export const uploadSingleFile = (req, res, next) => {
     next(err);
   });
 };
+
+export const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5 MB
+
+// SVG is left out on purpose, because SVG files can carry scripts
+const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_AVATAR_SIZE, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (!AVATAR_TYPES.has(file.mimetype)) {
+      const error = new Error('Profile pictures must be JPG, PNG or WebP');
+      error.status = 400;
+      return cb(error);
+    }
+    cb(null, true);
+  },
+});
+
+// Wraps multer so its errors become clean 400/413 responses
+export const uploadAvatarFile = (req, res, next) => {
+  avatarUpload.single('avatar')(req, res, (err) => {
+    if (!err) return next();
+    if (err instanceof multer.MulterError) {
+      const tooBig = err.code === 'LIMIT_FILE_SIZE';
+      return res.status(tooBig ? 413 : 400).json({
+        message: tooBig ? 'Picture is too large (max 5 MB)' : 'Invalid upload',
+      });
+    }
+    next(err);
+  });
+};

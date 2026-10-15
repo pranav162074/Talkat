@@ -56,3 +56,11 @@ export const sendMessageSchema = z.discriminatedUnion('type', [
 ]);
 
 export const markReadSchema = z.object({ messageId: uuid.optional() });
+
+export const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(50, 'Name is too long').optional(),
+    bio: z.string().trim().max(200, 'Bio must be at most 200 characters').optional(),
+    tagline: z.string().trim().min(1, 'Tagline cannot be empty').max(60, 'Tagline must be at most 60 characters').optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'Nothing to update' });

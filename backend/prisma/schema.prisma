@@ -38,6 +38,8 @@ model User {
   password        String?
   googleId        String?      @unique
   avatar          String?
+  bio             String?
+  tagline         String       @default("Hey! I'm on Talkat")
   authProvider    AuthProvider @default(LOCAL)
   isEmailVerified Boolean      @default(false)
   createdAt       DateTime     @default(now())
