@@ -21,15 +21,23 @@ function Avatar({ src, name, online }) {
   );
 }
 
+
 const preview = (message, mine) => {
   if (!message) return 'No messages yet';
+
   const prefix = mine ? 'You: ' : '';
+
   if (message.type === 'IMAGE') return `${prefix}📷 Photo`;
   if (message.type === 'VIDEO') return `${prefix}🎥 Video`;
-  if (message.type === 'FILE') return `${prefix}📎 ${message.attachmentName || 'File'}`;
+  if (message.type === 'AUDIO') return `${prefix}🎤 Voice message`;
+  if (message.type === 'FILE') {
+    return `${prefix}📎 ${message.attachmentName || 'File'}`;
+  }
   if (message.type === 'LOCATION') return `${prefix}📍 Location`;
-  return `${prefix}${message.content}`;
+
+  return `${prefix}${message.content || 'Message'}`;
 };
+
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
