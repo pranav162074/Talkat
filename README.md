@@ -1,7 +1,7 @@
 # Talkat
 [![CI](https://github.com/pranav162074/Talkat/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pranav162074/Talkat/actions/workflows/ci.yml)
 
-A real-time chat app with 1-on-1 and group conversations, file and location sharing, email OTP verification and Google sign-in.
+A real-time chat app with 1-on-1 and group conversations, file and location sharing, user profiles, email OTP verification and Google sign-in.
 
 **Live demo:** https://talkat-app.onrender.com
 
@@ -12,6 +12,7 @@ A real-time chat app with 1-on-1 and group conversations, file and location shar
 - **Authentication:** email and password with bcrypt, email OTP verification, and Google sign-in. Google accounts link to an existing account with the same email.
 - **Real-time messaging:** Socket.io with JWT-authenticated connections, instant delivery, typing indicators, online presence and read receipts.
 - **Direct and group chats:** one direct chat per pair of users, groups with admin and member roles, admin-only add and remove, and automatic admin promotion when the last admin leaves.
+- **User profiles:** a profile page where you can change your picture, name, tagline and bio. Tap a person's name in a chat or group member list to see their profile.
 - **Attachments:** images, videos and documents (up to 10 MB) stored on Cloudinary.
 - **Location sharing:** send your position and see it on an interactive Leaflet map inside the chat.
 - **Message history:** cursor-based pagination with infinite scroll, and unread counts per conversation.
@@ -55,7 +56,9 @@ PostgreSQL    Redis       Cloudinary       Brevo
 - **One delivery path for messages.** The REST endpoints and the socket events call the same service and emit through the same helper.
 - **Presence supports multiple tabs.** Each user has a Redis set of socket ids and counts as online while the set is non-empty.
 - **The Socket.io Redis adapter is optional.** Set `USE_REDIS_ADAPTER=true` to broadcast across several server instances. It is off by default to stay within free-tier Redis command limits.
-- **Security basics.** Passwords are hashed, input is validated with Zod, auth and message endpoints are rate limited, login errors do not reveal which emails exist, user search matches emails exactly only, and uploads use a file type allow-list and a size limit.
+- **Profile pictures are cropped and replaced in place.** Cloudinary crops each upload to a square, and the file name is the user's id, so a new picture overwrites the old one and nothing is left orphaned.
+- **Profiles are private by default.** You can only view the profile of yourself or someone you share a conversation with. Everyone else gets the same 404 as a nonexistent user, so ids cannot be probed, and email is never part of the public response.
+- **Security basics.** Passwords are hashed, input is validated with Zod, auth, message and profile endpoints are rate limited per user, login errors do not reveal which emails exist, user search matches emails exactly only, and uploads use a file type allow-list and a size limit.
 
 ## Project structure
 
@@ -66,12 +69,12 @@ Talkat/
 │   ├── prisma/                   # Schema and migrations
 │   ├── src/
 │   │   ├── config/               # env, prisma, redis, cloudinary
-│   │   ├── controllers/          # auth, user, conversation, message
+│   │   ├── controllers/          # auth, user, profile, conversation, message
 │   │   ├── middleware/           # auth, validation, rate limits, uploads
 │   │   ├── routes/
 │   │   ├── services/             # otp, email, google, messages, uploads
 │   │   ├── sockets/              # handshake auth, handlers, emitters
-│   │   ├── utils/
+│   │   ├── utils/                # validators, token, public user shape
 │   │   ├── app.js                # Express app (imported by tests)
 │   │   └── server.js             # HTTP server and Socket.io
 │   └── tests/                    # Vitest and Supertest tests
@@ -81,7 +84,7 @@ Talkat/
         ├── components/           # Sidebar, ChatWindow, MessageBubble, modals, map
         ├── context/              # Auth, socket and chat providers
         ├── hooks/                # useAuth, useSocket, useChat, useMessages
-        ├── pages/                # Login, Register, VerifyOtp, Chat
+        ├── pages/                # Login, Register, VerifyOtp, Chat, Profile
         └── utils/
 ```
 
@@ -96,6 +99,10 @@ Talkat/
 | POST | `/api/auth/google` | Log in with a Google credential |
 | GET | `/api/auth/me` | Current user |
 | GET | `/api/users/search?q=` | Find people by name or exact email |
+| PATCH | `/api/users/me` | Update your name, tagline or bio |
+| POST | `/api/users/me/avatar` | Upload a profile picture (JPG, PNG or WebP, up to 5 MB) |
+| DELETE | `/api/users/me/avatar` | Remove your profile picture |
+| GET | `/api/users/:id` | View a profile (yourself or someone you share a chat with) |
 | POST | `/api/conversations/direct` | Open or create a 1-on-1 chat |
 | POST | `/api/conversations/group` | Create a group |
 | GET | `/api/conversations` | List conversations with unread counts |
@@ -188,7 +195,7 @@ Never commit `.env` files. Only the `.env.example` templates belong in Git.
 
 ## Testing and CI
 
-The backend has 19 automated tests with Vitest and Supertest, covering the signup and OTP flow, login rules, direct and group conversations, message ordering, pagination, unread counts and admin permissions.
+The backend has 35 automated tests with Vitest and Supertest, covering the signup and OTP flow, login rules, direct and group conversations, message ordering, pagination, unread counts, admin permissions, profile updates and picture uploads, and the privacy rules for viewing other people's profiles. Cloudinary is replaced by a fake in the profile tests, so no test touches an external service.
 
 ```bash
 cd backend
@@ -208,6 +215,7 @@ Pull requests to `main` must pass both checks before merging.
 ## Known limitations
 
 - **Free hosting sleeps when idle.** Expect a cold start after inactivity.
+- **Profile changes are not pushed live.** When someone changes their name or picture, other people see it after reloading their chat list, and cached messages can show the old picture for up to an hour.
 - **The auth token is stored in `localStorage`.** This is simple, but any script on the page can read it. httpOnly cookies would be stronger.
 - **File type checks trust the type reported by the browser.** A stricter version would inspect file contents.
 - **Presence can go stale if a server instance crashes** while the Redis adapter is enabled. A heartbeat would fix this.
