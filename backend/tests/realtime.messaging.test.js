@@ -215,6 +215,7 @@ describe('read receipts', () => {
 describe('send rate limit', () => {
   it(
     'stops a connection that sends too fast, and stores nothing extra',
+    { timeout: 40000 },
     async () => {
       const a = await connectAs('a');
 
@@ -226,7 +227,6 @@ describe('send rate limit', () => {
       const blocked = await send(a, fixture.ac.id, { type: 'TEXT', content: 'one too many' });
       expect(blocked).toEqual({ ok: false, error: 'You are sending messages too fast' });
       expect(await prisma.message.count({ where: { conversationId: fixture.ac.id } })).toBe(60);
-    },
-    { timeout: 40000 }
+    }
   );
 });
