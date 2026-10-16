@@ -8,7 +8,7 @@ import './ChatWindow.css';
 import GroupInfoModal from './GroupInfoModal';
 import ProfileModal from './ProfileModal';
 
-export default function ChatWindow({ conversation }) {
+export default function ChatWindow({ conversation, onBack }) {
   const { user } = useAuth();
   const [showInfo, setShowInfo] = useState(false);
   const [profileId, setProfileId] = useState(null);
@@ -82,7 +82,15 @@ export default function ChatWindow({ conversation }) {
   return (
     <div className="window">
       <header className="window-header">
-        <div>
+        <button
+          type="button"
+          className="window-back-btn"
+          onClick={onBack}
+          aria-label="Back to conversations"
+        >
+          ←
+        </button>
+        <div className="window-header-info">
           {isGroup ? (
             <strong>{title}</strong>
           ) : (
