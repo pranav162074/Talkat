@@ -84,3 +84,16 @@
 .modal-danger {
   color: #b91c1c;
 }
+
+.modal-name-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.modal-name-btn:hover {
+  text-decoration: underline;
+}

@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import UserPicker from './UserPicker';
 import './Modal.css';
+import ProfileModal from './ProfileModal';
 
 export default function GroupInfoModal({ conversation, onClose }) {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function GroupInfoModal({ conversation, onClose }) {
   const [toAdd, setToAdd] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [profileId, setProfileId] = useState(null);
 
   const me = conversation.participants.find((p) => p.id === user.id);
   const isAdmin = me?.role === 'ADMIN';
@@ -76,8 +78,13 @@ export default function GroupInfoModal({ conversation, onClose }) {
           {conversation.participants.map((p) => (
             <li key={p.id} className="modal-member">
               <span>
-                {p.name}
-                {p.id === user.id && ' (you)'}
+                {p.id === user.id ? (
+                  <>{p.name} (you)</>
+                ) : (
+                  <button className="modal-name-btn" onClick={() => setProfileId(p.id)}>
+                    {p.name}
+                  </button>
+                )}
                 {p.role === 'ADMIN' && <span className="modal-badge">admin</span>}
               </span>
               {isAdmin && p.id !== user.id && (
@@ -119,6 +126,7 @@ export default function GroupInfoModal({ conversation, onClose }) {
             Close
           </button>
         </div>
+        {profileId && <ProfileModal userId={profileId} onClose={() => setProfileId(null)} />}
       </div>
     </div>
   );

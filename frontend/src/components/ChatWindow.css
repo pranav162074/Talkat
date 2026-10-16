@@ -42,3 +42,16 @@
   color: #6b7280;
   font-style: italic;
 }
+
+.window-title-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.window-title-btn:hover {
+  text-decoration: underline;
+}
