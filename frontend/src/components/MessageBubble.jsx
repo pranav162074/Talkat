@@ -7,7 +7,7 @@ export default function MessageBubble({ message, mine, showSender, read }) {
 
   return (
     <div className={`bubble-row ${mine ? 'mine' : 'theirs'}`}>
-      <div className="bubble">
+      <div className={`bubble ${type === 'AUDIO' ? 'bubble-audio-message' : ''}`}>
         {showSender && <span className="bubble-sender">{message.sender?.name}</span>}
 
         {type === 'IMAGE' && (
@@ -18,6 +18,15 @@ export default function MessageBubble({ message, mine, showSender, read }) {
 
         {type === 'VIDEO' && (
           <video className="bubble-video" src={attachmentUrl} controls preload="metadata" />
+        )}
+
+        {type === 'AUDIO' && (
+          <audio
+            className="bubble-audio"
+            src={attachmentUrl}
+            controls
+            preload="metadata"
+          />
         )}
 
         {type === 'FILE' && (
