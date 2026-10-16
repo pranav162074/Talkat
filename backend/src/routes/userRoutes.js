@@ -1,5 +1,5 @@
 import express from 'express';
-import { searchUsers } from '../controllers/userController.js';
+import { searchUsers, getUserProfile } from '../controllers/userController.js';
 import {
   updateProfile,
   updateAvatar,
@@ -18,5 +18,6 @@ router.get('/search', protect, searchUsers);
 router.patch('/me', protect, profileLimiter, validate(updateProfileSchema), updateProfile);
 router.post('/me/avatar', protect, profileLimiter, uploadAvatarFile, updateAvatar);
 router.delete('/me/avatar', protect, profileLimiter, removeAvatar);
+router.get('/:id', protect, getUserProfile);
 
 export default router;

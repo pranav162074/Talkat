@@ -6,10 +6,12 @@ import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import './ChatWindow.css';
 import GroupInfoModal from './GroupInfoModal';
+import ProfileModal from './ProfileModal';
 
 export default function ChatWindow({ conversation }) {
   const { user } = useAuth();
   const [showInfo, setShowInfo] = useState(false);
+  const [profileId, setProfileId] = useState(null);
   const { onlineIds, typing } = useChat();
   const {
     messages,
@@ -81,7 +83,17 @@ export default function ChatWindow({ conversation }) {
     <div className="window">
       <header className="window-header">
         <div>
-          <strong>{title}</strong>
+          {isGroup ? (
+            <strong>{title}</strong>
+          ) : (
+            <button
+              className="window-title-btn"
+              onClick={() => setProfileId(others[0].id)}
+              title="View profile"
+            >
+              {title}
+            </button>
+          )}
           <span className="window-status">
             {isGroup ? `${conversation.participants.length} members` : online ? 'online' : 'offline'}
           </span>
@@ -126,6 +138,7 @@ export default function ChatWindow({ conversation }) {
         onSendAttachment={withScroll(sendAttachment)}
       />
       {showInfo && <GroupInfoModal conversation={conversation} onClose={() => setShowInfo(false)} />}
+      {profileId && <ProfileModal userId={profileId} onClose={() => setProfileId(null)} />}
     </div>
   );
 }
