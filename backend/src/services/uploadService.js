@@ -5,6 +5,7 @@ import cloudinary from '../config/cloudinary.js';
 export const getMessageType = (mimetype) => {
   if (mimetype.startsWith('image/')) return 'IMAGE';
   if (mimetype.startsWith('video/')) return 'VIDEO';
+  if (mimetype.startsWith('audio/')) return 'AUDIO';
   return 'FILE';
 };
 
@@ -12,7 +13,8 @@ export const getMessageType = (mimetype) => {
 export const uploadToCloudinary = (file) =>
   new Promise((resolve, reject) => {
     const type = getMessageType(file.mimetype);
-    const resourceType = type === 'IMAGE' ? 'image' : type === 'VIDEO' ? 'video' : 'raw';
+    const resourceType =
+  type === 'IMAGE' ? 'image' : type === 'VIDEO' || type === 'AUDIO' ? 'video' : 'raw';
     const id = crypto.randomUUID();
 
     // Raw files keep their extension in the public id so downloads open correctly

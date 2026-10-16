@@ -85,3 +85,17 @@
   color: #a5f3fc;
   font-weight: 700;
 }
+
+.bubble-audio-message {
+  width: min(320px, 75vw);
+  max-width: 85%;
+  box-sizing: border-box;
+}
+
+.bubble-audio {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0.25rem 0 0.3rem;
+}
