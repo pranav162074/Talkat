@@ -6,16 +6,20 @@ import ChatWindow from '../components/ChatWindow';
 import './Chat.css';
 
 function ChatLayout() {
-  const { conversations, activeId } = useChat();
+  const { conversations, activeId, setActiveId } = useChat();
   const active = conversations.find((c) => c.id === activeId);
 
   return (
-    <div className="chat-layout">
+    <div className={`chat-layout ${active ? 'chat-has-active' : 'chat-no-active'}`}>
       <Sidebar />
       <main className="chat-main">
         {active ? (
           // key makes React rebuild the window when you switch chats, resetting its state
-          <ChatWindow key={active.id} conversation={active} />
+          <ChatWindow
+            key={active.id}
+            conversation={active}
+            onBack={() => setActiveId(null)}
+          />
         ) : (
           <div className="chat-placeholder">
             <h2>Talkat</h2>

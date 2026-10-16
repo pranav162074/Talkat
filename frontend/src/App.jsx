@@ -6,10 +6,13 @@ import Register from './pages/Register';
 import VerifyOtp from './pages/VerifyOtp';
 import Chat from './pages/Chat';
 import Profile from './pages/Profile';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 
 export default function App() {
   return (
     <AuthProvider>
+      <PwaInstallPrompt />
+
       <Routes>
         <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
         <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
