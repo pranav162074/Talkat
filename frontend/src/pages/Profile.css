@@ -9,10 +9,11 @@
   width: 100%;
   max-width: 460px;
   align-self: flex-start;
-  background: #fff;
+  background: var(--surface);
+  color: var(--text);
   border-radius: 12px;
   padding: 1.75rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 24px var(--shadow);
 }
 
 .profile-top {
@@ -60,7 +61,7 @@
 
 .profile-email {
   margin: 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -90,8 +91,10 @@
 
 .profile-input {
   padding: 0.65rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
 }
 
 .profile-input:focus {
@@ -111,4 +114,53 @@ textarea.profile-input {
   background: #f0fdf4;
   color: #15803d;
   font-size: 0.9rem;
+}
+
+
+.profile-theme {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--app-bg);
+}
+
+.profile-theme-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.profile-theme-title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.profile-theme-description {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.profile-theme-toggle {
+  flex-shrink: 0;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.profile-theme-toggle:hover {
+  border-color: #6366f1;
+}
+
+.profile-theme-toggle:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
 }

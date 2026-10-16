@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import './Profile.css';
+import { useTheme } from '../context/useTheme';
 
 const MAX_PICTURE_SIZE = 5 * 1024 * 1024; // same 5 MB limit as the backend
 const PICTURE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [name, setName] = useState(user.name);
   const [tagline, setTagline] = useState(user.tagline || '');
   const [bio, setBio] = useState(user.bio || '');
@@ -150,7 +152,25 @@ export default function Profile() {
             )}
           </div>
           <p className="profile-email">{user.email}</p>
-        </div>
+            <div className="profile-theme">
+              <div className="profile-theme-info">
+                <span className="profile-theme-title">Appearance</span>
+                <span className="profile-theme-description">
+                  {theme === 'dark' ? 'Dark mode is on' : 'Light mode is on'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="profile-theme-toggle"
+                onClick={toggleTheme}
+                aria-pressed={theme === 'dark'}
+                aria-label="Toggle dark mode"
+              >
+                {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
+              </button>
+            </div>
+          </div>
 
         <form className="profile-form" onSubmit={onSave}>
           <div className="profile-field">
