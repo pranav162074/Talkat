@@ -34,9 +34,12 @@ export default function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // Used by the profile page: replaces the user with the updated one from the server
+  const updateUser = useCallback((updated) => setUser(updated), []);
+
   const value = useMemo(
-    () => ({ user, token, loading, login, logout }),
-    [user, token, loading, login, logout]
+    () => ({ user, token, loading, login, logout, updateUser }),
+    [user, token, loading, login, logout, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
