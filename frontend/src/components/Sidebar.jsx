@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
@@ -89,8 +90,13 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <Avatar src={user.avatar} name={user.name} />
-        <strong className="sidebar-me">{user.name}</strong>
+        <Link to="/profile" className="sidebar-me-link" title="Edit your profile">
+          <Avatar src={user.avatar} name={user.name} />
+          <div className="sidebar-me-text">
+            <strong className="sidebar-me">{user.name}</strong>
+            <span className="sidebar-tagline">{user.tagline}</span>
+          </div>
+        </Link>
         <button className="btn-link" onClick={logout}>
           Log out
         </button>

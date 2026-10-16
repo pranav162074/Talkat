@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyOtp from './pages/VerifyOtp';
 import Chat from './pages/Chat';
+import Profile from './pages/Profile';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
         <Route path="/verify" element={<PublicOnlyRoute><VerifyOtp /></PublicOnlyRoute>} />
         <Route path="/" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
