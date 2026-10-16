@@ -1,7 +1,7 @@
 .input-wrap {
   padding: 0.75rem 1rem;
-  background: #fff;
-  border-top: 1px solid #e5e7eb;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
 }
 
 .input-error {
@@ -12,7 +12,7 @@
 
 .input-status {
   margin: 0 0 0.5rem;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -27,7 +27,9 @@
   resize: none;
   max-height: 120px;
   padding: 0.6rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
   border-radius: 8px;
 }
 
@@ -39,7 +41,8 @@
 .input-icon {
   padding: 0.5rem 0.6rem;
   background: none;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
+  color: var(--text);
   border-radius: 8px;
   font-size: 1.1rem;
   line-height: 1;
@@ -47,7 +50,7 @@
 }
 
 .input-icon:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--app-bg);
 }
 
 .input-icon:disabled {
