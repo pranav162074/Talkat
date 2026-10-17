@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatSize, formatTime } from '../utils/format';
 import LocationMap from './LocationMap';
 import './MessageBubble.css';
@@ -17,6 +17,15 @@ export default function MessageBubble({
   const [draft, setDraft] = useState(message.content || '');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [now, setNow] = useState(() => new Date(message.createdAt).getTime());
+  useEffect(() => {
+    const updateNow = () => setNow(Date.now());
+
+    updateNow();
+    const timer = setInterval(updateNow, 1000);
+
+    return () => clearInterval(timer);
+  }, [message.createdAt]);
 
   const {
     type,
@@ -32,7 +41,7 @@ export default function MessageBubble({
     mine &&
     type === 'TEXT' &&
     !deletedAt &&
-    Date.now() - new Date(message.createdAt).getTime() <= EDIT_WINDOW_MS;
+    now - new Date(message.createdAt).getTime() < EDIT_WINDOW_MS;
 
   const handleEdit = async () => {
     const nextContent = draft.trim();
