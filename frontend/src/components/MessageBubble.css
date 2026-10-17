@@ -99,3 +99,73 @@
   min-width: 0;
   margin: 0.25rem 0 0.3rem;
 }
+
+/* Edit and unsend actions */
+.bubble-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.bubble-actions button {
+  border: none;
+  background: transparent;
+  color: var(--color-primary, #2563eb);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.bubble-actions button:hover {
+  text-decoration: underline;
+}
+
+.bubble-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bubble-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  margin-top: 6px;
+}
+
+.bubble-edit-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+  color: inherit;
+  background: var(--input-bg, transparent);
+}
+
+.bubble-edit-input:focus {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 1px;
+}
+
+.bubble-edited {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.bubble-unsent-text {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.bubble-action-error {
+  margin: 6px 0 0;
+  color: #dc2626;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}

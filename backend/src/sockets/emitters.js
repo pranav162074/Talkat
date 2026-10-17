@@ -26,3 +26,9 @@ export const removeFromConversation = (io, userId, conversationId) => {
   io.in(`user:${userId}`).socketsLeave(`conv:${conversationId}`);
   io.to(`user:${userId}`).emit('conversation:removed', { conversationId });
 };
+
+export const emitMessageUpdated = (io, message) =>
+  io?.to(`conv:${message.conversationId}`).emit('message:updated', message);
+
+export const emitMessageUnsent = (io, message) =>
+  io?.to(`conv:${message.conversationId}`).emit('message:unsent', message);

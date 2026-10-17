@@ -87,6 +87,8 @@ model Message {
   attachmentUrl  String?
   attachmentName String?
   attachmentSize Int?
+  editedAt       DateTime?
+  deletedAt      DateTime?
   latitude       Float?
   longitude      Float?
   createdAt      DateTime    @default(now())

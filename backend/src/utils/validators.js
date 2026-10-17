@@ -64,3 +64,7 @@ export const updateProfileSchema = z
     tagline: z.string().trim().min(1, 'Tagline cannot be empty').max(60, 'Tagline must be at most 60 characters').optional(),
   })
   .refine((data) => Object.keys(data).length > 0, { message: 'Nothing to update' });
+
+export const editMessageSchema = z.object({
+  content: z.string().trim().min(1, 'Message cannot be empty').max(4000, 'Message is too long'),
+});

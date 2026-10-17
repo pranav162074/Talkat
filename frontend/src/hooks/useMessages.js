@@ -51,19 +51,44 @@ export function useMessages(conversationId) {
     if (!loading && socket) socket.emit('message:read', { conversationId });
   }, [loading, socket, conversationId]);
 
-  // Live delivery
+  // Live delivery, edits, and unsends
   useEffect(() => {
     if (!socket) return;
 
     const onMessage = (message) => {
       if (message.conversationId !== conversationId) return;
       setMessages((prev) => addUnique(prev, message));
-      // The chat is open, so a message from someone else is read straight away
-      if (message.senderId !== user.id) socket.emit('message:read', { conversationId });
+
+      if (message.senderId !== user.id) {
+        socket.emit('message:read', { conversationId });
+      }
+    };
+
+    const onMessageUpdated = (message) => {
+      if (message.conversationId !== conversationId) return;
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? message : m))
+      );
+    };
+
+    const onMessageUnsent = (message) => {
+      if (message.conversationId !== conversationId) return;
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? message : m))
+      );
     };
 
     socket.on('message:new', onMessage);
-    return () => socket.off('message:new', onMessage);
+    socket.on('message:updated', onMessageUpdated);
+    socket.on('message:unsent', onMessageUnsent);
+
+    return () => {
+      socket.off('message:new', onMessage);
+      socket.off('message:updated', onMessageUpdated);
+      socket.off('message:unsent', onMessageUnsent);
+    };
   }, [socket, conversationId, user.id]);
 
   // Infinite scroll: fetch the page of messages older than the ones we have
@@ -130,6 +155,51 @@ export function useMessages(conversationId) {
     [conversationId]
   );
 
+    const editMessage = useCallback(
+    async (messageId, content) => {
+      try {
+        const { data } = await api.patch(
+          `/conversations/${conversationId}/messages/${messageId}`,
+          { content }
+        );
+
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? data.message : m))
+        );
+
+        return { ok: true, message: data.message };
+      } catch (err) {
+        return {
+          ok: false,
+          error: err.response?.data?.message || 'Could not edit message',
+        };
+      }
+    },
+    [conversationId]
+  );
+
+  const unsendMessage = useCallback(
+    async (messageId) => {
+      try {
+        const { data } = await api.delete(
+          `/conversations/${conversationId}/messages/${messageId}`
+        );
+
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? data.message : m))
+        );
+
+        return { ok: true, message: data.message };
+      } catch (err) {
+        return {
+          ok: false,
+          error: err.response?.data?.message || 'Could not unsend message',
+        };
+      }
+    },
+    [conversationId]
+  );
+
   return {
     messages,
     loading,
@@ -140,5 +210,7 @@ export function useMessages(conversationId) {
     sendText,
     sendLocation,
     sendAttachment,
+    editMessage,
+    unsendMessage,
   };
 }
