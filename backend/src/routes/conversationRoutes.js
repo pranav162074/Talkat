@@ -15,6 +15,7 @@ import {
   addParticipantsSchema,
   sendMessageSchema,
   markReadSchema,
+  editMessageSchema,
 } from '../utils/validators.js';
 import {
   listMessages,
@@ -22,6 +23,8 @@ import {
   markConversationRead,
   sendAttachment,
   requireMember,
+  updateMessage,
+  unsendMessageById,
 } from '../controllers/messageController.js';
 import { uploadSingleFile } from '../middleware/uploadMiddleware.js';
 import { messageLimiter } from '../middleware/rateLimiter.js';
@@ -37,6 +40,13 @@ router.get('/:id', getConversation);
 router.post('/:id/participants', validate(addParticipantsSchema), addParticipants);
 router.delete('/:id/participants/:userId', removeParticipant);
 router.get('/:id/messages', listMessages);
+router.patch(
+  '/:id/messages/:messageId',
+  messageLimiter,
+  validate(editMessageSchema),
+  updateMessage
+);
+router.delete('/:id/messages/:messageId', unsendMessageById);
 router.post('/:id/messages', messageLimiter, validate(sendMessageSchema), sendMessage);
 router.post('/:id/read', validate(markReadSchema), markConversationRead);
 router.post('/:id/attachments', messageLimiter, requireMember, uploadSingleFile, sendAttachment);

@@ -13,7 +13,7 @@ export default function ChatWindow({ conversation, onBack }) {
   const [showInfo, setShowInfo] = useState(false);
   const [profileId, setProfileId] = useState(null);
   const { onlineIds, typing } = useChat();
-  const {
+    const {
     messages,
     loading,
     loadingMore,
@@ -23,6 +23,8 @@ export default function ChatWindow({ conversation, onBack }) {
     sendText,
     sendLocation,
     sendAttachment,
+    editMessage,
+    unsendMessage,
   } = useMessages(conversation.id);
 
   const listRef = useRef(null);
@@ -131,6 +133,8 @@ export default function ChatWindow({ conversation, onBack }) {
             mine={m.senderId === user.id}
             showSender={isGroup && m.senderId !== user.id}
             read={m.senderId === user.id && isRead(m)}
+            onEdit={editMessage}
+            onUnsend={unsendMessage}
           />
         ))}
 

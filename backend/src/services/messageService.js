@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import redis from '../config/redis.js';
+import { toPublicMessage } from '../utils/publicMessage.js';
 
 const CACHE_SIZE = 60; // must stay above MAX_PAGE + 1
 const CACHE_TTL = 60 * 60; // seconds
@@ -110,7 +111,7 @@ export const getMessages = async (conversationId, { cursor, limit }) => {
   }
 
   const hasMore = rows.length > limit;
-  const messages = rows.slice(0, limit);
+  const messages = rows.slice(0, limit).map(toPublicMessage);
   return {
     messages,
     hasMore,
@@ -128,6 +129,7 @@ export const getUnreadCounts = async (userId) => {
     JOIN "Message" m
       ON m."conversationId" = cp."conversationId"
      AND m."senderId" <> cp."userId"
+     AND m."deletedAt" IS NULL
      AND (lr.id IS NULL OR m."createdAt" > lr."createdAt")
     WHERE cp."userId" = ${userId}
     GROUP BY cp."conversationId"
@@ -163,4 +165,82 @@ export const markRead = async (participant, messageId) => {
     data: { lastReadMessageId: target.id },
   });
   return target.id;
+};
+
+export const EDIT_WINDOW_MS = 5 * 60 * 1000; // messages can be edited for 5 minutes
+
+const loadWithSender = async (id) => {
+  const message = await prisma.message.findUnique({
+    where: { id },
+    include: { sender: { select: senderSelect } },
+  });
+
+  return message ? toPublicMessage(message) : null;
+};
+
+// The cached copy of the recent messages would keep showing the old text, so edits and
+// unsends clear it. The next read refills it from Postgres (the same cache-aside pattern).
+const invalidateCache = async (conversationId) => {
+  try {
+    await redis.del(cacheKey(conversationId));
+  } catch (error) {
+    console.error('Message cache clear failed:', error.message);
+  }
+};
+
+// Returns { status, message? }. The status is one of:
+// ok, unchanged, not_found, forbidden, deleted, not_editable, expired, unavailable
+export const editMessage = async (conversationId, messageId, userId, content) => {
+  const existing = await prisma.message.findFirst({ where: { id: messageId, conversationId } });
+  if (!existing) return { status: 'not_found' };
+  if (existing.senderId !== userId) return { status: 'forbidden' };
+  if (existing.deletedAt) return { status: 'deleted' };
+  if (existing.type !== 'TEXT') return { status: 'not_editable' };
+
+  const cutoff = new Date(Date.now() - EDIT_WINDOW_MS);
+  if (existing.createdAt < cutoff) return { status: 'expired' };
+
+  // Saving the same text shouldn't add an "edited" label
+  if (existing.content === content) {
+    return { status: 'unchanged', message: await loadWithSender(messageId) };
+  }
+
+  // The rules are repeated inside the update itself, so a message that was unsent or aged
+  // out between the check above and now can't slip through
+  const { count } = await prisma.message.updateMany({
+    where: { id: messageId, senderId: userId, deletedAt: null, createdAt: { gte: cutoff } },
+    data: { content, editedAt: new Date() },
+  });
+  if (count === 0) return { status: 'unavailable' };
+
+  await invalidateCache(conversationId);
+  return { status: 'ok', message: await loadWithSender(messageId) };
+};
+
+// Unsending has no time limit. The row stays, so read receipts and message order are
+// untouched, but everything the message contained is erased.
+export const unsendMessage = async (conversationId, messageId, userId) => {
+  const existing = await prisma.message.findFirst({
+    where: { id: messageId, conversationId },
+    select: { senderId: true, deletedAt: true },
+  });
+  if (!existing) return { status: 'not_found' };
+  if (existing.senderId !== userId) return { status: 'forbidden' };
+  if (existing.deletedAt) return { status: 'already', message: await loadWithSender(messageId) };
+
+  await prisma.message.updateMany({
+    where: { id: messageId, senderId: userId, deletedAt: null },
+    data: {
+      deletedAt: new Date(),
+      content: null,
+      attachmentUrl: null,
+      attachmentName: null,
+      attachmentSize: null,
+      latitude: null,
+      longitude: null,
+    },
+  });
+
+  await invalidateCache(conversationId);
+  return { status: 'ok', message: await loadWithSender(messageId) };
 };

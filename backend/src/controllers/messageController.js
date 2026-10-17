@@ -4,9 +4,16 @@ import {
   createMessage,
   getMessages,
   markRead,
+  editMessage,
+  unsendMessage,
   MAX_PAGE,
 } from '../services/messageService.js';
-import { emitNewMessage, emitRead } from '../sockets/emitters.js';
+import {
+  emitNewMessage,
+  emitRead,
+  emitMessageUpdated,
+  emitMessageUnsent,
+} from '../sockets/emitters.js';
 import { uploadToCloudinary, getMessageType } from '../services/uploadService.js';
 
 const cursorSchema = z.string().uuid();
@@ -111,6 +118,76 @@ export const sendAttachment = async (req, res, next) => {
 
     emitNewMessage(req.app.get('io'), message);
     res.status(201).json({ message });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route PATCH /api/conversations/:id/messages/:messageId
+export const updateMessage = async (req, res, next) => {
+  try {
+    const { id, messageId } = req.params;
+
+    if (!(await getMembership(id, req.user.id))) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    const result = await editMessage(
+      id,
+      messageId,
+      req.user.id,
+      req.body.content
+    );
+
+    const responses = {
+      not_found: [404, 'Message not found'],
+      forbidden: [403, 'You can only edit your own messages'],
+      deleted: [410, 'Message has been unsent'],
+      not_editable: [400, 'Only text messages can be edited'],
+      expired: [403, 'Messages can only be edited within 5 minutes'],
+      unavailable: [409, 'Message can no longer be edited'],
+    };
+
+    if (responses[result.status]) {
+      const [status, message] = responses[result.status];
+      return res.status(status).json({ message });
+    }
+
+    if (result.status === 'ok') {
+  emitMessageUpdated(req.app.get('io'), result.message);
+}
+
+  res.json({ message: result.message, unchanged: result.status === 'unchanged' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route DELETE /api/conversations/:id/messages/:messageId
+export const unsendMessageById = async (req, res, next) => {
+  try {
+    const { id, messageId } = req.params;
+
+    if (!(await getMembership(id, req.user.id))) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    const result = await unsendMessage(id, messageId, req.user.id);
+
+    const responses = {
+      not_found: [404, 'Message not found'],
+      forbidden: [403, 'You can only unsend your own messages'],
+    };
+
+    if (responses[result.status]) {
+      const [status, message] = responses[result.status];
+      return res.status(status).json({ message });
+    }
+
+    if (result.status === 'ok') {
+      emitMessageUnsent(req.app.get('io'), result.message);
+    }
+    res.json({ message: result.message });
   } catch (error) {
     next(error);
   }
