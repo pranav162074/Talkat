@@ -100,61 +100,118 @@
   margin: 0.25rem 0 0.3rem;
 }
 
+
 /* Edit and unsend actions */
 .bubble-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 .bubble-actions button {
-  border: none;
-  background: transparent;
-  color: var(--color-primary, #2563eb);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
   font: inherit;
   font-size: 0.75rem;
+  font-weight: 600;
   cursor: pointer;
-  padding: 2px 0;
+  padding: 5px 9px;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.bubble-actions button:hover {
-  text-decoration: underline;
+.bubble-actions button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.35);
+  text-decoration: none;
+}
+
+.bubble-actions button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .bubble-actions button:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
+/* Distinguish the unsend action */
+.bubble-actions button:last-child {
+  color: #fecaca;
+}
+
+.bubble-actions button:last-child:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.22);
+  border-color: rgba(254, 202, 202, 0.45);
+}
+
+/* Editing form */
 .bubble-edit-form {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 180px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .bubble-edit-input {
   width: 100%;
+  min-height: 76px;
   box-sizing: border-box;
   resize: vertical;
-  border: 1px solid var(--border-color, #cbd5e1);
+  border: 1px solid #94a3b8;
   border-radius: 8px;
-  padding: 8px;
+  padding: 9px;
   font: inherit;
-  color: inherit;
-  background: var(--input-bg, transparent);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #111827;
+  background: #ffffff;
+  caret-color: #111827;
+}
+
+.bubble-edit-input::placeholder {
+  color: #6b7280;
+  opacity: 1;
 }
 
 .bubble-edit-input:focus {
-  outline: 2px solid var(--color-primary, #2563eb);
+  outline: 2px solid #a5b4fc;
   outline-offset: 1px;
+  border-color: #818cf8;
 }
 
+/* Make Save clearly identifiable */
+.bubble-edit-form .bubble-actions button:first-child {
+  color: #ffffff;
+  background: #166534;
+  border-color: #166534;
+}
+
+.bubble-edit-form .bubble-actions button:first-child:hover:not(:disabled) {
+  background: #14532d;
+  border-color: #14532d;
+}
+
+/* Cancel */
+.bubble-edit-form .bubble-actions button:last-child {
+  color: #ffffff;
+  background: #475569;
+  border-color: #475569;
+}
+
+.bubble-edit-form .bubble-actions button:last-child:hover:not(:disabled) {
+  background: #334155;
+}
+
+/* Edited and unsent indicators */
 .bubble-edited {
   font-size: 0.75rem;
-  opacity: 0.7;
+  opacity: 0.8;
   white-space: nowrap;
 }
 
@@ -165,7 +222,7 @@
 
 .bubble-action-error {
   margin: 6px 0 0;
-  color: #dc2626;
+  color: #fecaca;
   font-size: 0.8rem;
   overflow-wrap: anywhere;
 }
