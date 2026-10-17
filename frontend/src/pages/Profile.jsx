@@ -154,10 +154,7 @@ export default function Profile() {
           <p className="profile-email">{user.email}</p>
             <div className="profile-theme">
               <div className="profile-theme-info">
-                <span className="profile-theme-title">Appearance</span>
-                <span className="profile-theme-description">
-                  {theme === 'dark' ? 'Dark mode is on' : 'Light mode is on'}
-                </span>
+                <span className="profile-theme-title">Appearance:</span>
               </div>
 
               <button
