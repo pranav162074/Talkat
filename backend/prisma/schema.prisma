@@ -46,8 +46,9 @@ model User {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  participations ConversationParticipant[]
-  messages       Message[]
+  participations    ConversationParticipant[]
+  messages          Message[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Conversation {
@@ -97,4 +98,22 @@ model Message {
   sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
+}
+
+// One row per browser or device that turned notifications on. The endpoint is the
+// push service URL for that browser, and p256dh and auth are the keys used to
+// encrypt each notification so only that browser can read it.
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

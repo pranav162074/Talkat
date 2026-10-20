@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import CreateGroupModal from './CreateGroupModal';
+import NotificationToggle from './NotificationToggle';
 import './Sidebar.css';
 
 const initial = (name) => (name?.trim()?.[0] || '?').toUpperCase();
@@ -121,6 +122,8 @@ export default function Sidebar() {
         + New group
       </button>
 
+      <NotificationToggle />
+
       <div className="sidebar-list">
         {showResults ? (
           <>
@@ -165,4 +168,4 @@ export default function Sidebar() {
       {showGroupModal && <CreateGroupModal onClose={() => setShowGroupModal(false)} />}
     </aside>
   );
-}
+}

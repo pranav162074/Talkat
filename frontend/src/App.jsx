@@ -7,6 +7,7 @@ import VerifyOtp from './pages/VerifyOtp';
 import Chat from './pages/Chat';
 import Profile from './pages/Profile';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import NotificationClickHandler from './components/NotificationClickHandler';
 import { ThemeProvider } from './context/ThemeProvider';
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <PwaInstallPrompt />
+        <NotificationClickHandler />
 
         <Routes>
           <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
@@ -26,4 +28,4 @@ export default function App() {
       </AuthProvider>
     </ThemeProvider>
   );
-}
+}

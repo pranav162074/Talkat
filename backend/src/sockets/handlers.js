@@ -1,9 +1,10 @@
 import redis from '../config/redis.js';
 import { sendMessageSchema, markReadSchema } from '../utils/validators.js';
 import { createMessage, getMembership, markRead } from '../services/messageService.js';
-import { emitNewMessage, emitRead } from './emitters.js';
+import { emitRead } from './emitters.js';
+import { deliverNewMessage } from '../services/deliveryService.js';
+import { presenceKey, visibleKey } from '../utils/presenceKeys.js';
 
-const presenceKey = (userId) => `presence:${userId}`;
 const conversationRooms = (socket) => [...socket.rooms].filter((room) => room.startsWith('conv:'));
 
 const markOnline = async (socket) => {
@@ -12,10 +13,24 @@ const markOnline = async (socket) => {
   return results[2][1]; // how many sockets (tabs) this user has now
 };
 
+// A closed socket is neither connected nor on screen, so both sets drop it together
 const markOffline = async (socket) => {
   const key = presenceKey(socket.data.user.id);
-  const results = await redis.multi().srem(key, socket.id).scard(key).exec();
-  return results[1][1];
+  const results = await redis
+    .multi()
+    .srem(key, socket.id)
+    .srem(visibleKey(socket.data.user.id), socket.id)
+    .scard(key)
+    .exec();
+  return results[2][1];
+};
+
+// The browser reports whether this tab is on screen. Push notifications go only to people
+// with no visible tab, so someone reading the chat isn't also pinged by their phone.
+const setVisible = async (socket, visible) => {
+  const key = visibleKey(socket.data.user.id);
+  if (visible) await redis.multi().sadd(key, socket.id).expire(key, 86400).exec();
+  else await redis.srem(key, socket.id);
 };
 
 const getOnlineContacts = async (userIds) => {
@@ -73,12 +88,18 @@ export default function registerHandlers(io, socket) {
       }
 
       const message = await createMessage(conversationId, userId, parsed.data);
-      emitNewMessage(io, message);
+      deliverNewMessage(io, message);
       reply({ ok: true, message });
     } catch (error) {
       console.error('message:send failed:', error.message);
       reply({ ok: false, error: 'Could not send message' });
     }
+  });
+
+  socket.on('presence:visibility', (payload) => {
+    setVisible(socket, payload?.visible === true).catch((error) =>
+      console.error('Visibility error:', error.message)
+    );
   });
 
   socket.on('message:read', async (payload, ack) => {
@@ -122,4 +143,4 @@ export default function registerHandlers(io, socket) {
       console.error('Presence error:', error.message);
     }
   })();
-}
+}

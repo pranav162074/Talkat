@@ -9,6 +9,7 @@ import redis from './config/redis.js';
 import authRoutes from './routes/authRoutes.js';
 import conversationRoutes from './routes/conversationRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 const app = express();
 // Render puts a proxy in front of the app. Without this, every user appears to
@@ -47,6 +48,7 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
@@ -57,4 +59,4 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || 'Server error' });
 });
 
-export default app;
+export default app;

@@ -12,6 +12,10 @@ export default defineConfig({
       NODE_ENV: 'test',
       JWT_SECRET: 'test-secret-only-for-tests',
       CLIENT_URL: 'http://localhost:5173',
+      // A key pair made only for tests, so the push code runs in CI. Never use it anywhere else.
+      VAPID_PUBLIC_KEY: 'BMAxgStKcP311cICnK0UTmgUjcJKiFDvMmquht0a-t12e9HuKGDklDDvueJc2pTG41uMcRm752flOHT6k_aWcdo',
+      VAPID_PRIVATE_KEY: 'MvLf--9thkJYmk1V0fYkd13BXLQvwlLuaYg5A9vQWks',
+      VAPID_SUBJECT: 'mailto:tests@example.com',
     },
   },
-});
+});

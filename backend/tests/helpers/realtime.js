@@ -70,6 +70,7 @@ export async function teardownRealtime() {
   await prisma.user.deleteMany({ where: { id: { in: ids } } });
   await redis.del(
     ...ids.map((id) => `presence:${id}`),
+    ...ids.map((id) => `visible:${id}`),
     ...conversations.map((c) => `chat:${c.id}:recent`)
   );
 
@@ -155,4 +156,4 @@ export const emitAck = (socket, event, payload, timeoutMs = 5000) =>
     socket.timeout(timeoutMs).emit(event, payload, (err, response) =>
       err ? reject(err) : resolve(response)
     );
-});
+});

@@ -20,6 +20,7 @@ A real-time chat application with 1-on-1 and group conversations, message editin
 - **Progressive Web App:** Install Talkat on supported browsers and devices for quick access from the home screen or desktop.
 - **Automatic PWA updates:** Web app manifest, service worker, app icons, and automatic service-worker updates through Vite PWA.
 - **Install prompt:** An in-app installation prompt appears when the browser supports the installation event.
+- **Push notifications:** Web Push (VAPID) notifications for new messages, sent only to people who don't have Talkat on screen. Each tab reports its visibility over Socket.IO, notifications collapse per chat, and tapping one opens that chat. Logging out turns notifications off on that device.
 - **User profiles:** Change your profile picture, name, tagline, and bio. Tap a person's name in a chat or group member list to view their profile.
 - **Attachments:** Share images, videos, and documents up to 10 MB, stored on Cloudinary.
 - **Location sharing:** Send your location and view it on an interactive Leaflet map inside the chat.
@@ -38,6 +39,7 @@ A real-time chat application with 1-on-1 and group conversations, message editin
 | Cache and ephemeral data | Redis (Upstash) |
 | File storage | Cloudinary |
 | Email | Brevo HTTP API |
+| Push notifications | Web Push API, VAPID, `web-push` |
 | Authentication | JWT, bcrypt, Google Identity Services |
 | Testing and CI | Vitest, Supertest, GitHub Actions |
 | Hosting | Render (backend web service and frontend static site) |
@@ -131,6 +133,7 @@ GitHub Actions runs the configured CI checks on pull requests and pushes to the 
 - Apply pending Prisma migrations to the production database before using schema-dependent features.
 - Ensure the frontend points to the deployed backend API and the Socket.IO connection is configured for the production origin.
 - Keep API keys, database credentials, JWT secrets, and OAuth secrets out of source control.
+- To enable push notifications, generate a VAPID key pair once with `npx web-push generate-vapid-keys` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` on the backend. Without them the app runs normally and sends no notifications. Changing the keys later invalidates every existing subscription.
 - Uploaded files are stored on Cloudinary. Clearing an attachment URL from a message record does not necessarily delete the underlying file from Cloudinary.
 
 ## Security and Data Handling
@@ -140,3 +143,5 @@ GitHub Actions runs the configured CI checks on pull requests and pushes to the 
 - Message editing and unsending are restricted to the original sender.
 - Message edit time limits are validated by the backend, not only by the frontend.
 - Unsent message content, attachment metadata, and location data are cleared from the message record.
+- Push subscription endpoints are restricted to known browser push services, so the server can't be made to send requests to arbitrary URLs.
+- Notification payloads are encrypted for the receiving browser, so push services can't read message previews.
