@@ -7,14 +7,16 @@ import redis from '../config/redis.js';
 import registerHandlers from './handlers.js';
 
 // With a single instance there are no live sockets at startup,
-// so any presence left over from a crash is stale
+// so any presence or visibility left over from a crash is stale
 const clearPresence = async () => {
-  let cursor = '0';
-  do {
-    const [next, keys] = await redis.scan(cursor, 'MATCH', 'presence:*', 'COUNT', 100);
-    if (keys.length > 0) await redis.del(...keys);
-    cursor = next;
-  } while (cursor !== '0');
+  for (const pattern of ['presence:*', 'visible:*']) {
+    let cursor = '0';
+    do {
+      const [next, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      if (keys.length > 0) await redis.del(...keys);
+      cursor = next;
+    } while (cursor !== '0');
+  }
 };
 
 export const initSocket = (httpServer) => {
@@ -66,4 +68,4 @@ export const initSocket = (httpServer) => {
   io.on('connection', (socket) => registerHandlers(io, socket));
 
   return io;
-};
+};

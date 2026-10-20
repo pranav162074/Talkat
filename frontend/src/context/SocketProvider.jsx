@@ -21,5 +21,24 @@ export default function SocketProvider({ children }) {
     };
   }, [token]);
 
+  // Tells the server whether this tab is on screen, so it only sends push notifications
+  // when you aren't looking. Sent again after every reconnect, because a reconnected
+  // socket is a new socket to the server.
+  useEffect(() => {
+    if (!socket) return;
+
+    const report = () =>
+      socket.emit('presence:visibility', { visible: document.visibilityState === 'visible' });
+
+    socket.on('connect', report);
+    document.addEventListener('visibilitychange', report);
+    if (socket.connected) report();
+
+    return () => {
+      socket.off('connect', report);
+      document.removeEventListener('visibilitychange', report);
+    };
+  }, [socket]);
+
   return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
-}
+}

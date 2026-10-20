@@ -53,6 +53,8 @@ export default defineConfig({
       },
 
       workbox: {
+        // Adds the push and notification-click handlers from public/push-sw.js
+        importScripts: ['push-sw.js'],
         navigateFallback: 'index.html',
         globPatterns: [
           '**/*.{js,css,html,ico,png,svg,woff2}',

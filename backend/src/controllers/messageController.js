@@ -8,8 +8,8 @@ import {
   unsendMessage,
   MAX_PAGE,
 } from '../services/messageService.js';
+import { deliverNewMessage } from '../services/deliveryService.js';
 import {
-  emitNewMessage,
   emitRead,
   emitMessageUpdated,
   emitMessageUnsent,
@@ -53,7 +53,7 @@ export const sendMessage = async (req, res, next) => {
     }
 
     const message = await createMessage(id, req.user.id, req.body);
-    emitNewMessage(req.app.get('io'), message);
+    deliverNewMessage(req.app.get('io'), message);
     res.status(201).json({ message });
   } catch (error) {
     next(error);
@@ -116,7 +116,7 @@ export const sendAttachment = async (req, res, next) => {
       attachmentSize: req.file.size,
     });
 
-    emitNewMessage(req.app.get('io'), message);
+    deliverNewMessage(req.app.get('io'), message);
     res.status(201).json({ message });
   } catch (error) {
     next(error);
@@ -191,4 +191,4 @@ export const unsendMessageById = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
+};

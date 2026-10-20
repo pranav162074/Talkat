@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
@@ -6,6 +7,7 @@ import { ChatContext } from './chatContext';
 
 const time = (c) => new Date(c.lastMessage?.createdAt || c.createdAt);
 const byRecent = (a, b) => time(b) - time(a);
+const BASE_TITLE = document.title;
 
 export default function ChatProvider({ children }) {
   const { user } = useAuth();
@@ -15,6 +17,26 @@ export default function ChatProvider({ children }) {
   const [activeId, setActiveId] = useState(null);
   const [onlineIds, setOnlineIds] = useState([]);
   const [typing, setTyping] = useState({}); // { conversationId: { userId: true } }
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedId = searchParams.get('c');
+
+  // A tapped notification lands on /?c=<conversationId>: open that chat, then tidy the URL
+  useEffect(() => {
+    if (!requestedId) return;
+    // Syncing state from the URL is what this effect is for
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveId(requestedId);
+    setSearchParams({}, { replace: true });
+  }, [requestedId, setSearchParams]);
+
+  // "(3) Talkat" in the tab title while there are unread messages
+  const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+  useEffect(() => {
+    document.title = totalUnread > 0 ? `(${totalUnread}) ${BASE_TITLE}` : BASE_TITLE;
+  }, [totalUnread]);
+  useEffect(() => () => {
+    document.title = BASE_TITLE;
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -161,4 +183,4 @@ export default function ChatProvider({ children }) {
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
-}
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import api, { TOKEN_KEY } from '../api/axios';
+import { disablePush } from '../utils/push';
 import { AuthContext } from './authContext';
 
 export default function AuthProvider({ children }) {
@@ -18,6 +19,8 @@ export default function AuthProvider({ children }) {
       .catch(() => {
         localStorage.removeItem(TOKEN_KEY);
         setToken(null);
+        // The session is over, so this browser must stop getting the old account's messages
+        disablePush().catch(() => {});
       })
       .finally(() => setLoading(false));
   }, []);
@@ -28,7 +31,10 @@ export default function AuthProvider({ children }) {
     setUser(newUser);
   }, []);
 
-  const logout = useCallback(() => {
+  // Logging out turns notifications off on this device, so on a shared computer the next
+  // person never sees your messages. Done before the token is removed, while it still works.
+  const logout = useCallback(async () => {
+    await disablePush().catch(() => {});
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
@@ -43,4 +49,4 @@ export default function AuthProvider({ children }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+}

@@ -23,6 +23,11 @@ const env = {
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
+  vapidSubject: process.env.VAPID_SUBJECT,
 };
-
+// Push notifications are optional: without all three VAPID values the app runs normally
+// and simply never sends any
+env.pushEnabled = Boolean(env.vapidPublicKey && env.vapidPrivateKey && env.vapidSubject);
 export default env;

@@ -65,6 +65,52 @@ export const updateProfileSchema = z
   })
   .refine((data) => Object.keys(data).length > 0, { message: 'Nothing to update' });
 
+// Only the push services real browsers use. The server sends a request to whatever endpoint is
+// stored, so without this list anyone could register an internal or arbitrary URL and make
+// our server call it (server-side request forgery).
+const PUSH_SERVICE_HOSTS = [
+  'fcm.googleapis.com', // Chrome, Edge on Android, most Chromium browsers
+  'android.googleapis.com', // older Chrome subscriptions
+  'push.services.mozilla.com', // Firefox
+  'notify.windows.com', // Edge on Windows
+  'push.apple.com', // Safari and iOS home-screen apps
+];
+
+const isPushServiceUrl = (value) => {
+  try {
+    const { protocol, hostname } = new URL(value);
+    return (
+      protocol === 'https:' &&
+      PUSH_SERVICE_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`))
+    );
+  } catch {
+    return false;
+  }
+};
+
+const pushEndpoint = z
+  .string({ error: 'endpoint is required' })
+  .max(2048, 'endpoint is too long')
+  .refine(isPushServiceUrl, 'Unsupported push service');
+
+const base64Url = (name, max) =>
+  z
+    .string({ error: `${name} is required` })
+    .min(1, `${name} is required`)
+    .max(max, `${name} is too long`)
+    .regex(/^[A-Za-z0-9_-]+={0,2}$/, `${name} is not valid`);
+
+// The shape of PushSubscription.toJSON() in the browser
+export const pushSubscriptionSchema = z.object({
+  endpoint: pushEndpoint,
+  keys: z.object(
+    { p256dh: base64Url('p256dh', 200), auth: base64Url('auth', 100) },
+    { error: 'keys are required' }
+  ),
+});
+
+export const removeSubscriptionSchema = z.object({ endpoint: pushEndpoint });
+
 export const editMessageSchema = z.object({
   content: z.string().trim().min(1, 'Message cannot be empty').max(4000, 'Message is too long'),
-});
+});
